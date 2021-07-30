@@ -15,7 +15,7 @@ class LXMconfig:
         self.lxm_conf["header_forwarded_for"] = 1
         self.lxm_conf["service_ip"] = "0.0.0.0"
         self.lxm_conf["service_port"] = 9000
-        self.lxm_conf["influx_server"] = "141.40.145.176"
+        self.lxm_conf["influx_server"] = "0.0.0.0"
         self.lxm_conf["influx_port"] = 8086
         self.lxm_conf["debug"] = 1
         self.lxm_conf["hard_exit"] = True
