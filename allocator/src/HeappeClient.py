@@ -42,10 +42,14 @@ class HeappeClient():
             return False
         info_dict = {}
         if (r.status_code == 200):
-            for cluster in r.json():
-                info_dict[cluster['Name']] = cluster
-                info_dict[cluster['Name']]['timer'] = datetime.datetime.now() - datetime.timedelta(seconds=1)
-            self.logger.doLog('Successully gathered static cluster info.')
+            try:
+                for cluster in r.json():
+                    info_dict[cluster['Name']] = cluster
+                    info_dict[cluster['Name']]['timer'] = datetime.datetime.now() - datetime.timedelta(seconds=1)
+                self.logger.doLog('Successully gathered static cluster info.')
+            except:
+                self.logger.doLog('ERROR: invalid response (not json readable) from %s' %(url))
+                return False
         else:
             self.logger.doLog('Initial request failed for other reasons than requests exception')
             return False

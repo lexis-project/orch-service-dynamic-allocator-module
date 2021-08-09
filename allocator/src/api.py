@@ -1094,19 +1094,19 @@ class APIRest:
                 self.logger.doLog("served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]" % (auth_res['status'], auth_res['jmsg']))
                 return (jsonify(auth_res['jmsg']), auth_res['status'])
             if job_id not in self.platform.get_job_list():
-                jmsg['message'] = "job ID is not valid -- call evaluation endpoint first" 
-                jmsg['status'] = 'err'
+                jmsg['message'] = []
+                jmsg['status'] = 'err. job ID is not valid -- call evaluation endpoint first'
                 self.logger.doLog("served '/get/machines/%s' [err: %s is not a valid ID for a job]" % (job_id, job_id))
                 state = 400
             else:
                 if self.platform.get_job_list()[job_id]['status'] != "done":
-                    jmsg['message'] = self.platform.get_job_list()[job_id]['msg']
-                    jmsg['status'] = self.platform.get_job_list()[job_id]['status']
+                    jmsg['message'] = []
+                    jmsg['status'] = self.platform.get_job_list()[job_id]['status'] + ". " + self.platform.get_job_list()[job_id]['msg']
                 else:
                     best_machines = self.platform.get_best_machines(job_id)
                     if len(best_machines) == 0:
-                        jmsg['message'] = "No available/compatible location. Try again later."
-                        jmsg['status'] = 'ok'
+                        jmsg['message'] = []
+                        jmsg['status'] = 'No available/compatible location. Try again later.'
                     else:
                         jmsg['message'] = best_machines
                         jmsg['status'] = 'ok'
