@@ -14,19 +14,19 @@ class LocationSchema(Schema):
     numberOfFiles = fields.Integer(validate=validate_quantity, required=True)
 
 class BaseSchema(Schema):
-    number = fields.Integer(required=True)
+    number = fields.Integer(validate=validate_quantity, required=True)
     project = fields.String(required=True)
     storage_inputs = fields.List(fields.Nested(LocationSchema), required=True)
 
 class HPCSchema(BaseSchema):
-    max_walltime = fields.Integer(required=True)
-    max_cores = fields.Integer(required=True)
+    max_walltime = fields.Integer(validate=validate_quantity, required=True)
+    max_cores = fields.Integer(validate=validate_quantity, required=True)
     taskName = fields.String(required=True)
     resubmit = fields.Boolean(required=False)
 
 class CloudSchema(BaseSchema):
     os_version = fields.String(required=True)
-    vCPU = fields.Integer(required=True)
-    mem = fields.Integer(required=True)
-    disk = fields.Integer(required=True)
-    inst = fields.Integer(required=True)
+    vCPU = fields.Integer(validate=validate_quantity, required=True)
+    mem = fields.Integer(validate=validate_quantity, required=True)
+    disk = fields.Integer(validate=validate_quantity, required=True)
+    inst = fields.Integer(validate=validate_quantity, required=True)

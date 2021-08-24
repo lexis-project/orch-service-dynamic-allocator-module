@@ -321,9 +321,10 @@ class Clusters(object):
             denominator = info_dict['compute']['maxTotalInstances']
         instances_metric = (free_instances - job_args['inst']) / denominator
         total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
+        data_tranf_score = 1
         if origins == False:
                 return False
-        else:
+        elif len(job_args['storage_inputs']) != 0:
             time_param, not_used = self.data_transf(job_args['storage_inputs'], center.name, default = True)
             data_tranf_score = math.exp(-(total_max_time / (2 * time_param)))
         res['dest']['storage_inputs'] = origins
