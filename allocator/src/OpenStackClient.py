@@ -4,6 +4,7 @@ from keystoneclient.v3 import client
 from novaclient import client as nova_client
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
+from neutronclient.v2_0 import client as neutron_client
 import json
 import requests
 import re
@@ -25,6 +26,7 @@ class OpenStackClient():
         self.nova = None
         self.cinder = None
         self.glance = None
+        self.neutron = None
         self.session = None
         self.logger = logger
         self.info_dict = {}
@@ -85,6 +87,8 @@ class OpenStackClient():
         self.nova = nova_client.Client(2.1, session=self.session)
         self.cinder = cinder_client.Client(3, session=self.session)
         self.glance = glance_client.Client('2', session=self.session)
+        self.neutron = neutron_client.Client(session=self.session)
+
 
     def get_nova_client(self):
         if self.nova == None:
@@ -100,6 +104,11 @@ class OpenStackClient():
         if self.glance == None:
             self.glance = glance_client.Client('2', session=self.session)
         return self.glance
+
+    def get_neutron_client(self):
+        if self.neutron == None:
+            self.neutron = neutron_client.Client(session=self.session)
+        return self.neutron
 
     def get_compute_limits(self):
         if self.nova == None:
@@ -141,12 +150,20 @@ class OpenStackClient():
             self.images[image.name] = image
         return self.images
 
+    def get_net_quotas(self):
+        if self.neutron == None:
+            self.neutron = neutron_client.Client(session=self.session)
+        tenant_id = self.neutron.get_quotas_tenant()['tenant']['tenant_id']
+        self.quotas = self.neutron.show_quota_details(tenant_id)
+        return self.quotas['quota']
+
     def update(self):
         self.init_clients()
         self.info_dict['compute'] = self.get_compute_limits()
         self.info_dict['storage'] = self.get_storage_limits()
         self.info_dict['flavours'] = self.get_flavours()
         self.info_dict['images'] = self.get_images()
+        self.info_dict['network'] = self.get_net_quotas()
         return self.info_dict
 
     def auth_and_update(self, openstack_url, user, token, heappe_url=None, password=None, project_id=None):

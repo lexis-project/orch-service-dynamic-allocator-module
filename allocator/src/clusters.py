@@ -269,9 +269,11 @@ class Clusters(object):
                 break
         if not check:
             return False
+        if info_dict['network']['floatingip']['limit'] - info_dict['network']['floatingip']['used'] <= 0 and info_dict['network']['floatingip']['limit'] >= 0:
+            self.logger.doLog("Floating IP quota reached!")
+            return False
         # Check image
         image_available = False
-        selected_image = None
         for image, image_features in info_dict['images'].items():
             if compare_image_names(job_args['os_version'], image):
                 image_available = True

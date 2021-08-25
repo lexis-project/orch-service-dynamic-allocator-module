@@ -20,6 +20,7 @@ class HeappeClient():
         if self.info_dict == False:
             return None
         self.project_info_dict = None
+        self.session_code = None
         
     def init_info(self, url):
         if url is None:
@@ -191,11 +192,13 @@ class HeappeClient():
             return False
         self.logger.doLog('Updating status for cluster: ' + cluster)
         if self.info_dict[cluster]['timer'] <= datetime.datetime.now() or resubmit:
-            self.info_dict[cluster]['timer'] = datetime.datetime.now() + datetime.timedelta(minutes=5)
             if passauth:
                 self.auth(user, token)
             else:
                 self.auth_openid(user, token)
+            if self.session_code is None:
+                self.logger.doLog('ERROR during HEAppE auth')
+                return False
             queues_status = {}
             for queue in self.info_dict[cluster]['NodeTypes']:
                 self.logger.doLog('Updating status for queue: ' + str(queue['Id']))
@@ -207,6 +210,8 @@ class HeappeClient():
                     continue
                 self.logger.doLog('Successfully updated queue load status info.')
             self.info_dict[cluster]['QueueStatus'] = queues_status
+            self.info_dict[cluster]['timer'] = datetime.datetime.now() + datetime.timedelta(minutes=5)
+        self.session_code = None
         return self.info_dict[cluster]['QueueStatus'].keys()
 
     def get_heappe(self, heappe_url, token):
