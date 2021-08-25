@@ -39,10 +39,13 @@ netaddr==0.8.0
 netifaces==0.10.9
 oauth2client==4.1.3
 openstacksdk==0.55.0
+os-client-config==2.1.0
 os-service-types==1.7.0
 osc-lib==2.3.1
 oslo.config==8.5.0
+oslo.context==3.3.1
 oslo.i18n==5.0.1
+oslo.log==4.6.0
 oslo.serialization==4.1.0
 oslo.utils==4.8.0
 packaging==20.9
@@ -53,6 +56,7 @@ pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
 Pygments==2.7.2
+pyinotify==0.9.6
 pyOpenSSL==20.0.1
 pyparsing==2.4.7
 pyperclip==1.8.2
@@ -63,6 +67,7 @@ python-cinderclient==7.4.0
 python-dateutil==2.8.1
 python-glanceclient==3.3.0
 python-keystoneclient==4.2.0
+python-neutronclient==7.5.0
 python-novaclient==17.4.0
 python-openstackclient==5.5.0
 pytz==2020.4
