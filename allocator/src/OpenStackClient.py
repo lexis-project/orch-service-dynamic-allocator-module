@@ -82,6 +82,10 @@ class OpenStackClient():
                auth_methods=[application_credential]
               )
         self.session = session.Session(auth=auth)
+        if self.session is None:
+            self.logger.doLog('OpenStack auth failed using OpenId Token')
+            return False
+        return True
 
     def init_clients(self):
         self.nova = nova_client.Client(2.1, session=self.session)
@@ -173,13 +177,14 @@ class OpenStackClient():
         else:
             openstack_url = openstack_url + ":5000"
             self.set_auth_url(openstack_url)
-        if self.session == None:
-            if heappe_url != None:
-                if not self.auth_heappe(heappe_url, user, token):
-                    self.logger.doLog('Openstack openid token authentication failed')
-                    return False
-            else:
-                if self.auth_pass(user, password, project_id) == None:
-                    self.logger.doLog('Openstack password authentication failed')
-                    return False
+        if heappe_url != None:
+            if not self.auth_heappe(heappe_url, user, token):
+                self.logger.doLog('Openstack openid token authentication failed')
+                self.session = None
+                return False
+        else:
+            if self.auth_pass(user, password, project_id) == None:
+                self.logger.doLog('Openstack password authentication failed')
+                self.session = None
+                return False
         return self.update()

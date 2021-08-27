@@ -260,7 +260,7 @@ class Clusters(object):
             return False
         info_dict = center.auth_and_update(openstack_endpoint, "test_user", token['access_token'], heappe_url=heappe_endpoint)
         if info_dict == False:
-            self.logger.doLog("Openstack auth failed/unreachable")
+            self.logger.doLog("Openstack auth failed/unreachable for center %s" %(center.name))
             return False
         check = True
         for maintenance in self.get_maintenance_dates(center.name, "cloud", datetime.datetime.now()):
