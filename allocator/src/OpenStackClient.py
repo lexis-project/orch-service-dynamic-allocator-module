@@ -168,10 +168,11 @@ class OpenStackClient():
         self.info_dict['flavours'] = self.get_flavours()
         self.info_dict['images'] = self.get_images()
         self.info_dict['network'] = self.get_net_quotas()
-        self.session = None
         return self.info_dict
 
     def auth_and_update(self, openstack_url, user, token, heappe_url=None, password=None, project_id=None):
+        self.info_dict = {}
+        self.session = None
         if openstack_url is None:
             return False
         else:

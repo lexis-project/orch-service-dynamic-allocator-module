@@ -340,7 +340,9 @@ class Clusters(object):
         for value in values:
             if value < 0:
                 self.logger.doLog("Not enough Openstack resources to allocate task.")
-                return False
+                self.logger.doLog("score < 0. Values = ")
+                self.logger.doLog(values)
+                return True
             res['real_mean'] += value
         res['real_mean'] /= len(values)
         res['mean'] = res['real_mean']
