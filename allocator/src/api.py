@@ -1035,7 +1035,7 @@ class APIRest:
             self.platform.evaluate(a_dict, token)
             jmsg['message'] = "evaluation ongoing for all the machines"
             jmsg['status'] = 'ok'
-            self.logger.doLog("served '/evaluate/machines' [ok]")
+            self.logger.doLog("served '/evaluate/machines' [ok] -- type (%s), job_id (%d)]" % (args['type'], args['job_id']))
             if (self.db_active2 != True):
                 jmsg['message'] = "the database ('%s') is not active or has been deleted" % (self.db_name_2)
                 jmsg['status'] = 'err'

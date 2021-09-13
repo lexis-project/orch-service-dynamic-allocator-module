@@ -379,6 +379,10 @@ class Clusters(object):
             self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
             return (0)
         check = False
+        if args['attempt'] > 0:
+            previous_job_best = sorted(args['original_request_id']['val'], key = lambda x: x['mean'], reverse=True)[0]
+            previous_job_location = previous_job_best['dest']
+
         if args['type'] == "both" or args['type'] == "cloud":
             items = (x for x in av_resources if x["ResourceType"] == "CLOUD")
             for item in items:
