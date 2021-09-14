@@ -25,6 +25,7 @@ class Clusters(object):
         self.backend_URL = lxc.lxm_conf["backend_URL"]
         self.transfer_sizes = lxc.lxm_conf["transfer_sizes"].split(',')
         self.transfer_speeds = lxc.lxm_conf["transfer_speeds"].split(',')
+        self.last_failed = dict()
         tsizes_list_len = len(self.transfer_sizes)
         tspeeds_list_len = len(self.transfer_speeds)
         if (tsizes_list_len != tspeeds_list_len):
@@ -379,14 +380,17 @@ class Clusters(object):
             self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
             return (0)
         check = False
+        previous_job_location = None
         if args['attempt'] > 0:
             previous_job_best = sorted(args['original_request_id']['val'], key = lambda x: x['mean'], reverse=True)[0]
-            previous_job_location = previous_job_best['dest']
+            previous_job_location = previous_job_best['dest']['location']
 
         if args['type'] == "both" or args['type'] == "cloud":
             items = (x for x in av_resources if x["ResourceType"] == "CLOUD")
             for item in items:
                 for center in self.clusters_info:
+                    if center == previous_job_location:
+                        continue
                     if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
@@ -397,6 +401,8 @@ class Clusters(object):
             items = (x for x in av_resources if x["ResourceType"] == "HPC")
             for item in items:
                 for center in self.clusters_info:
+                    if center == previous_job_location:
+                        continue
                     if "hpc" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
