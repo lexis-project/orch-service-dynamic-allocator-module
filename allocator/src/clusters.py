@@ -5,6 +5,7 @@ import lxmlog
 import datetime
 import uuid
 import re
+import shelve
 import math
 from HeappeClient import HeappeClient
 from OpenStackClient import OpenStackClient, compare_image_names
@@ -18,14 +19,13 @@ class Clusters(object):
     def __init__(self, logger, lxc, api):
         self.logger = logger
         self.api = api
-        self.job_list = dict()
+        self.job_list = shelve.open('../dbs/'+lxc.lxm_conf["influx_db2"]+'_persistent_job_list', writeback=True)
         self.default_transfer_speeds = dict()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
         self.backend_URL = lxc.lxm_conf["backend_URL"]
         self.transfer_sizes = lxc.lxm_conf["transfer_sizes"].split(',')
         self.transfer_speeds = lxc.lxm_conf["transfer_speeds"].split(',')
-        self.last_failed = dict()
         tsizes_list_len = len(self.transfer_sizes)
         tspeeds_list_len = len(self.transfer_speeds)
         if (tsizes_list_len != tspeeds_list_len):
@@ -62,6 +62,9 @@ class Clusters(object):
         self.update_clusters_info()
         if len(self.clusters_list) == 0:
             self.logger.doLog("WARNING: no cluster attached!")
+    
+    def __del__(self):
+        self.job_list.close()
 
     # class methods
     # add new job list element
@@ -417,6 +420,8 @@ class Clusters(object):
             self.job_list[args['job_id']]['msg'] = "evaluation failed."
         if self.api.write_evaluation(args['job_id']) == False:
             self.job_list[args['job_id']]['msg'] = self.job_list[args['job_id']]['msg'] + " WAR: could not write the result in the DB. DB not available."
+
+        self.job_list.sync()
         return (0)
 
 
