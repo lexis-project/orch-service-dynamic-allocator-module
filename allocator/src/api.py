@@ -361,16 +361,18 @@ class APIRest:
         return (jmsg, ret[1])
 
     # insert the evaluation in the influxdb (db2): 
-    def write_evaluation(self, job_id):
+    def write_evaluation(self, job_id, job_list):
         ret = True
         jmm = {}
         start = True
         r = ""
+        self.logger.doLog('DEBUG 1')
         if (self.db_active2 == True):
-            for queue in self.platform.job_list[job_id]['val']:
+            for queue in job_list['val']:
+                self.logger.doLog('DEBUG 2')
                 if (start == False):
                     r += ","
-                if self.platform.job_list[job_id]['params']['type'] == "cloud" or ( self.platform.job_list[job_id]['params']['type'] == "both" and "cluster_id" not in queue['dest'].keys() ) :
+                if job_list['params']['type'] == "cloud" or ( job_list['params']['type'] == "both" and "cluster_id" not in queue['dest'].keys() ) :
                     m = str(queue['dest']['location']) + "_cloud"
                     jmm[m] = queue['mean']
                 else:
@@ -378,20 +380,23 @@ class APIRest:
                     jmm[m] = queue['mean']
                 r += "%s:%.5f" % (m, jmm[m])
                 start = False
+            self.logger.doLog('DEBUG 3')
             db_body = [{'measurement':'machineEvaluation', \
-                    'tags':{'job_id':job_id, 'job_type':self.platform.job_list[job_id]['params']['type'], 'id':self.idx2}, \
+                    'tags':{'job_id':job_id, 'job_type':job_list['params']['type'], 'id':self.idx2}, \
                         'fields':{'rank':r}}]
             self.idx2 += 1
+            self.logger.doLog('DEBUG 4')
             if (self.verbosity > 1):
                 self.logger.doLog("ranking: %s" % (r))
             ret = self.idb_c2.write_points(db_body)
+            self.logger.doLog('DEBUG 5')
             if (ret == True):
                 self.logger.doLog("ended evaluation, result wrote in DB '/evaluate/machines' [ok]")
             else:
                 self.logger.doLog("ended evaluation '/evaluate/machines' [war: evaluation failed for some of the machines]")
         else:
-                self.logger.doLog("ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]" % (self.db_name_2))
-                return False
+            self.logger.doLog("ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]" % (self.db_name_2))
+            return False
         return True
 
     # stop the server execution quietly 
@@ -1005,7 +1010,7 @@ class APIRest:
             if ((args['type'] != 'hpc') and (args['type'] != 'cloud')):
                 jmsg['message'] = "wrong input parameter(s)"
                 jmsg['status'] = 'err'
-                self.logger.doLog("served '/evaluate/machines' [err: wrong input parameter(s) -- type (%s), job_id (%d)]" % (args['type'], args['job_id']))
+                self.logger.doLog("served '/evaluate/machines' [err: wrong input parameter(s)")
                 state = 400
                 return (jsonify(jmsg), state)
             elif args['type'] == 'cloud':
@@ -1020,12 +1025,14 @@ class APIRest:
                 return (jsonify(jmsg), state)
             request.get_json()
             request_data = request.json
+            self.logger.doLog('DEBUG eval 1')
             try:
                 result = schema.load(request_data, unknown=EXCLUDE)
             except ValidationError as err:
                 jmsg['message'] = "wrong input parameter(s)"
                 jmsg['status'] = 'err'
                 return jsonify(err.messages, 400)
+            self.logger.doLog('DEBUG eval 2')
             data_now_json_str = dumps(result)
             a_dict = loads(data_now_json_str)
             a_dict['type'] = args['type']
@@ -1035,7 +1042,8 @@ class APIRest:
             self.platform.evaluate(a_dict, token)
             jmsg['message'] = "evaluation ongoing for all the machines"
             jmsg['status'] = 'ok'
-            self.logger.doLog("served '/evaluate/machines' [ok] -- type (%s), job_id (%d)]" % (args['type'], args['job_id']))
+            self.logger.doLog('DEBUG eval 3')
+            self.logger.doLog("served '/evaluate/machines' [ok] -- type (%s), job_id (%s)]" % (args['type'], a_dict['job_id']))
             if (self.db_active2 != True):
                 jmsg['message'] = "the database ('%s') is not active or has been deleted" % (self.db_name_2)
                 jmsg['status'] = 'err'

@@ -19,7 +19,9 @@ class Clusters(object):
     def __init__(self, logger, lxc, api):
         self.logger = logger
         self.api = api
-        self.job_list = shelve.open('../dbs/'+lxc.lxm_conf["influx_db2"]+'_persistent_job_list', writeback=True)
+        self.job_list_file = '../dbs/'+lxc.lxm_conf["lxm_db2"]+'_persistent_job_list'
+        # self.job_list = shelve.open('../dbs/'+lxc.lxm_conf["lxm_db2"]+'_persistent_job_list',flag='c', writeback=True)
+        # self.job_list.close()
         self.default_transfer_speeds = dict()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
@@ -62,17 +64,15 @@ class Clusters(object):
         self.update_clusters_info()
         if len(self.clusters_list) == 0:
             self.logger.doLog("WARNING: no cluster attached!")
-    
-    def __del__(self):
-        self.job_list.close()
 
-    # class methods
+    # class methodsq
     # add new job list element
     def new_job_req(self):
         uid = str(uuid.uuid4())
-        self.job_list[uid] = dict()
-        self.job_list[uid]['status'] = "ongoing"
-        self.job_list[uid]['msg'] = ""
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[uid] = dict()
+            job_list[uid]['status'] = "ongoing"
+            job_list[uid]['msg'] = ""
         return uid
 
     #update cluster name
@@ -103,7 +103,9 @@ class Clusters(object):
 
     # get the list of scheduled jobs
     def get_job_list(self):
-        return self.job_list
+        with shelve.open(self.job_list_file) as job_list:
+            dict_job_list = dict(job_list)
+        return dict_job_list
 
     # check token validation and eventually refresh
     def check_refresh_token(self, token):
@@ -246,7 +248,8 @@ class Clusters(object):
                 res['mean'] /= len(values)
                 if res['mean'] <= 0:
                     continue
-                self.job_list[job_args['job_id']]['val'].append(res)
+                with shelve.open(self.job_list_file, writeback=True) as job_list:
+                    job_list[job_args['job_id']]['val'].append(res)
             #End of the loop over queue types
         return True
 
@@ -353,7 +356,8 @@ class Clusters(object):
         if len(job_args['storage_inputs']) != 0:
             res['mean'] = data_tranf_score
         res['dest']['flavour'] = selected_flavour
-        self.job_list[job_args['job_id']]['val'].append(res)
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[job_args['job_id']]['val'].append(res)
         return True
 
     def backend_av_resources(self, projectID, token):
@@ -374,26 +378,26 @@ class Clusters(object):
 
 	# evaluate all the available machines based on the weighted criteria mean
     def evaluate(self, args, token):
-        self.job_list[args['job_id']]['params'] = args
-        self.job_list[args['job_id']]['val'] = []
-        av_resources = self.backend_av_resources(args['project'], token)
-        if av_resources == False:
-            self.job_list[args['job_id']]['status'] = "err"
-            self.job_list[args['job_id']]['msg'] = "auth_backend"
-            self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
-            return (0)
-        check = False
-        previous_job_location = None
-        if args['attempt'] > 0:
-            previous_job_best = sorted(args['original_request_id']['val'], key = lambda x: x['mean'], reverse=True)[0]
-            previous_job_location = previous_job_best['dest']['location']
-
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[args['job_id']]['params'] = args
+            job_list[args['job_id']]['val'] = []
+            av_resources = self.backend_av_resources(args['project'], token)
+            if av_resources == False:
+                job_list[args['job_id']]['status'] = "err"
+                job_list[args['job_id']]['msg'] = "auth_backend"
+                self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
+                return (0)
+            check = False
+            previous_job_location = None
+            # if args['attempt'] > 0:
+                # previous_job_best = sorted(args['original_request_id']['val'], key = lambda x: x['mean'], reverse=True)[0]
+                # previous_job_location = previous_job_best['dest']['location']
         if args['type'] == "both" or args['type'] == "cloud":
             items = (x for x in av_resources if x["ResourceType"] == "CLOUD")
             for item in items:
                 for center in self.clusters_info:
-                    if center == previous_job_location:
-                        continue
+                    # if center == previous_job_location:
+                        # continue
                     if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
@@ -404,40 +408,43 @@ class Clusters(object):
             items = (x for x in av_resources if x["ResourceType"] == "HPC")
             for item in items:
                 for center in self.clusters_info:
-                    if center == previous_job_location:
-                        continue
+                    # if center == previous_job_location:
+                        # continue
                     if "hpc" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
                         if self.HPC_weighted_criteria_mean(args, self.clusters_info[center]['hpc'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], token) == True:
                             check = True
                         break
-        if check == True:
-            self.job_list[args['job_id']]['status'] = "done"
-            self.job_list[args['job_id']]['msg'] = "evaluation successfully ended."
-        else:
-            self.job_list[args['job_id']]['status'] = "err"
-            self.job_list[args['job_id']]['msg'] = "evaluation failed."
-        if self.api.write_evaluation(args['job_id']) == False:
-            self.job_list[args['job_id']]['msg'] = self.job_list[args['job_id']]['msg'] + " WAR: could not write the result in the DB. DB not available."
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            if check == True:
+                job_list[args['job_id']]['status'] = "done"
+                job_list[args['job_id']]['msg'] = "evaluation successfully ended."
+            else:
+                job_list[args['job_id']]['status'] = "err"
+                job_list[args['job_id']]['msg'] = "evaluation failed."
+            if self.api.write_evaluation(args['job_id'], dict(job_list[args['job_id']])) == False:
+                job_list[args['job_id']]['msg'] = job_list[args['job_id']]['msg'] + " WAR: could not write the result in the DB. DB not available."
+        return args['job_id']
 
-        self.job_list.sync()
-        return (0)
 
-
-    # delete a job previously inserted in the system
+    # # delete a job previously inserted in the system
     def remove_job(self, job_id):
-        del self.job_list[job_id]
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            del job_list[job_id]
         return (0)
 
 
     # get the best machine(s) where to run a given job (job_id)
     def get_best_machines(self, job_id):
         results = []
-        temp = sorted(self.job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
-        for i in temp:
-            if (len(results) >= self.job_list[job_id]['params']['number']):
-                break
-            elif (i['mean'] > 0):
-                results.append(i['dest'])
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            self.logger.doLog('DEBUG cl 1')
+            temp = sorted(job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
+            for i in temp:
+                if (len(results) >= job_list[job_id]['params']['number']):
+                    break
+                elif (i['mean'] > 0):
+                    results.append(i['dest'])
+        self.logger.doLog('DEBUG cl 2')
         return (results)
