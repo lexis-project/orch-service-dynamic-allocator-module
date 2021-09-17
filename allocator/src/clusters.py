@@ -178,7 +178,7 @@ class Clusters(object):
         return tot_transf_time, origins
 
     # weighted criteria mean for HPC clusters
-    def HPC_weighted_criteria_mean(self, job_args, center, heappe_endpoint, hpc_project, token):
+    def HPC_weighted_criteria_mean(self, job_args, center, heappe_endpoint, hpc_project, banned_sites, token):
         if self.check_refresh_token(token) == False:
             return False
         if center.get_heappe(heappe_endpoint, token) == False:
@@ -206,6 +206,8 @@ class Clusters(object):
             task = dict()
             task['name'] = job_args['taskName']
             if res['dest']['cluster_id'] < 0:
+                continue
+            if (res['dest']['location'], res['dest']['cluster_id']) in banned_sites:
                 continue
             total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
             if origins == False:
@@ -376,6 +378,20 @@ class Clusters(object):
             self.logger.doLog('Available resource for project request failed ')
             return False
 
+    def get_banned_sites(self, original_request_id):
+        ret_cloud = []
+        ret_hpc = []
+        if original_request_id is not "":
+            with shelve.open(self.job_list_file, writeback=True) as job_list:
+                while original_request_id is not "":
+                    for item in job_list[original_request_id]['res']:
+                        if item[1] == "cloud":
+                            ret_cloud.append(item[0])
+                        else:
+                            ret_hpc.append(item)
+                    original_request_id = job_list[original_request_id]['original_request_id']
+        return ret_hpc, ret_cloud
+
 	# evaluate all the available machines based on the weighted criteria mean
     def evaluate(self, args, token):
         with shelve.open(self.job_list_file, writeback=True) as job_list:
@@ -387,18 +403,16 @@ class Clusters(object):
                 job_list[args['job_id']]['msg'] = "auth_backend"
                 self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
                 return (0)
-            check = False
-            previous_job_location = None
-            # if args['attempt'] > 0:
-                # previous_job_best = sorted(args['original_request_id']['val'], key = lambda x: x['mean'], reverse=True)[0]
-                # previous_job_location = previous_job_best['dest']['location']
+            if args['original_request_id'] != "" and args['original_request_id'] not in job_list.keys():
+                self.logger.doLog("WAR: original_request_id %s is provided but does not exist in the DB. Ignoring the failover functionality." %(args['original_request_id']))
+                args['original_request_id'] = ""
+        banned_sites_hpc, banned_sites_cloud = self.get_banned_sites(args['original_request_id'])
+        check = False
         if args['type'] == "both" or args['type'] == "cloud":
             items = (x for x in av_resources if x["ResourceType"] == "CLOUD")
             for item in items:
                 for center in self.clusters_info:
-                    # if center == previous_job_location:
-                        # continue
-                    if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
+                    if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()) or center in banned_sites_cloud:
                         continue
                     else:
                         if self.Cloud_weighted_criteria_mean(args, self.clusters_info[center]['cloud'], item['OpenStackEndpoint'], item['CloudNetworkName'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], token) == True:
@@ -408,12 +422,10 @@ class Clusters(object):
             items = (x for x in av_resources if x["ResourceType"] == "HPC")
             for item in items:
                 for center in self.clusters_info:
-                    # if center == previous_job_location:
-                        # continue
                     if "hpc" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
-                        if self.HPC_weighted_criteria_mean(args, self.clusters_info[center]['hpc'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], token) == True:
+                        if self.HPC_weighted_criteria_mean(args, self.clusters_info[center]['hpc'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], banned_sites_hpc, token) == True:
                             check = True
                         break
         with shelve.open(self.job_list_file, writeback=True) as job_list:
@@ -440,11 +452,17 @@ class Clusters(object):
         results = []
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             self.logger.doLog('DEBUG cl 1')
+            job_list[job_id]['res'] = []
             temp = sorted(job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
             for i in temp:
                 if (len(results) >= job_list[job_id]['params']['number']):
                     break
                 elif (i['mean'] > 0):
                     results.append(i['dest'])
+                    if 'cluster_id' in i['dest'].keys():
+                        cluster = i['dest']['cluster_id']
+                    else:
+                        cluster = "cloud"
+                    job_list[job_id]['res'].append((i['dest']['location'], cluster))
         self.logger.doLog('DEBUG cl 2')
         return (results)
