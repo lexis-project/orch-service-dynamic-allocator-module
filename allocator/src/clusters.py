@@ -101,11 +101,22 @@ class Clusters(object):
                     ret.append((start, end))
         return ret
 
-    # get the list of scheduled jobs
-    def get_job_list(self):
+    # get the dictionary of all scheduled jobs, may eat up much memory
+    def dump_job_list_dict(self):
         with shelve.open(self.job_list_file) as job_list:
             dict_job_list = dict(job_list)
         return dict_job_list
+    
+    def job_id_exists(self, job_id):
+        with shelve.open(self.job_list_file) as job_list:
+            if job_id in job_list:
+                return True
+        return False
+    
+    def get_job_info(self, job_id):
+        with shelve.open(self.job_list_file) as job_list:
+            temp = dict(job_list[job_id])
+        return temp
 
     # check token validation and eventually refresh
     def check_refresh_token(self, token):
