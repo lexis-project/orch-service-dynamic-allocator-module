@@ -182,12 +182,12 @@ class Clusters(object):
             if len(av_queues) == 0:
                 continue
             if self.check_refresh_token(token) == False:
-                return False
+                continue
             if "resubmit" not in job_args.keys():
                 job_args['resubmit'] = False
             queue_status = center.update_cluster(cluster, "testuser", token['access_token'], job_args['resubmit'])
             if queue_status == False:
-                return False
+                continue
             if len(queue_status) == 0:
                 continue
             res = dict()
@@ -203,7 +203,7 @@ class Clusters(object):
                 continue
             total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
             if origins == False:
-                return False
+                continue
             else:
                 data_tranf_score = 1 - (total_max_time / (total_max_time + job_args['max_walltime']))
             check = True
