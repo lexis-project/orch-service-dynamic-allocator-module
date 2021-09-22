@@ -366,10 +366,8 @@ class APIRest:
         jmm = {}
         start = True
         r = ""
-        self.logger.doLog('DEBUG 1')
         if (self.db_active2 == True):
             for queue in job_list['val']:
-                self.logger.doLog('DEBUG 2')
                 if (start == False):
                     r += ","
                 if job_list['params']['type'] == "cloud" or ( job_list['params']['type'] == "both" and "cluster_id" not in queue['dest'].keys() ) :
@@ -380,16 +378,13 @@ class APIRest:
                     jmm[m] = queue['mean']
                 r += "%s:%.5f" % (m, jmm[m])
                 start = False
-            self.logger.doLog('DEBUG 3')
             db_body = [{'measurement':'machineEvaluation', \
                     'tags':{'job_id':job_id, 'job_type':job_list['params']['type'], 'id':self.idx2}, \
                         'fields':{'rank':r}}]
             self.idx2 += 1
-            self.logger.doLog('DEBUG 4')
             if (self.verbosity > 1):
                 self.logger.doLog("ranking: %s" % (r))
             ret = self.idb_c2.write_points(db_body)
-            self.logger.doLog('DEBUG 5')
             if (ret == True):
                 self.logger.doLog("ended evaluation, result wrote in DB '/evaluate/machines' [ok]")
             else:
@@ -1025,14 +1020,12 @@ class APIRest:
                 return (jsonify(jmsg), state)
             request.get_json()
             request_data = request.json
-            self.logger.doLog('DEBUG eval 1')
             try:
                 result = schema.load(request_data, unknown=EXCLUDE)
             except ValidationError as err:
                 jmsg['message'] = "wrong input parameter(s)"
                 jmsg['status'] = 'err'
                 return jsonify(err.messages, 400)
-            self.logger.doLog('DEBUG eval 2')
             data_now_json_str = dumps(result)
             a_dict = loads(data_now_json_str)
             a_dict['type'] = args['type']
@@ -1042,7 +1035,6 @@ class APIRest:
             self.platform.evaluate(a_dict, token)
             jmsg['message'] = "evaluation ongoing for all the machines"
             jmsg['status'] = 'ok'
-            self.logger.doLog('DEBUG eval 3')
             self.logger.doLog("served '/evaluate/machines' [ok] -- type (%s), job_id (%s)]" % (args['type'], a_dict['job_id']))
             if (self.db_active2 != True):
                 jmsg['message'] = "the database ('%s') is not active or has been deleted" % (self.db_name_2)

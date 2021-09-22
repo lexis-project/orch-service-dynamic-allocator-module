@@ -200,9 +200,10 @@ class Clusters(object):
                 continue
             if self.check_refresh_token(token) == False:
                 return False
-            if "resubmit" not in job_args.keys():
-                job_args['resubmit'] = False
-            queue_status = center.update_cluster(cluster, "testuser", token['access_token'], job_args['resubmit'])
+            resubmit = False
+            if job_args['original_request_id'] != "":
+                resubmit = True
+            queue_status = center.update_cluster(cluster, "testuser", token['access_token'], resubmit)
             if queue_status == False:
                 return False
             if len(queue_status) == 0:
@@ -395,12 +396,15 @@ class Clusters(object):
         if original_request_id is not "":
             with shelve.open(self.job_list_file, writeback=True) as job_list:
                 while original_request_id is not "":
+                    if 'res' not in job_list[original_request_id].keys():
+                        self.logger.doLog("WAR: results for original_request_id %s have never been asked. Banned sites listing procedure will be truncated." %(original_request_id))
+                        break
                     for item in job_list[original_request_id]['res']:
                         if item[1] == "cloud":
                             ret_cloud.append(item[0])
                         else:
                             ret_hpc.append(item)
-                    original_request_id = job_list[original_request_id]['original_request_id']
+                    original_request_id = job_list[original_request_id]['params']['original_request_id']
         return ret_hpc, ret_cloud
 
 	# evaluate all the available machines based on the weighted criteria mean
@@ -462,7 +466,6 @@ class Clusters(object):
     def get_best_machines(self, job_id):
         results = []
         with shelve.open(self.job_list_file, writeback=True) as job_list:
-            self.logger.doLog('DEBUG cl 1')
             job_list[job_id]['res'] = []
             temp = sorted(job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
             for i in temp:
@@ -475,5 +478,4 @@ class Clusters(object):
                     else:
                         cluster = "cloud"
                     job_list[job_id]['res'].append((i['dest']['location'], cluster))
-        self.logger.doLog('DEBUG cl 2')
         return (results)

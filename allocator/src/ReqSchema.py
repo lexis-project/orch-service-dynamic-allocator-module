@@ -23,7 +23,6 @@ class HPCSchema(BaseSchema):
     max_walltime = fields.Integer(validate=validate_quantity, required=True)
     max_cores = fields.Integer(validate=validate_quantity, required=True)
     taskName = fields.String(required=True)
-    resubmit = fields.Boolean(required=False)
 
 class CloudSchema(BaseSchema):
     os_version = fields.String(required=True)
