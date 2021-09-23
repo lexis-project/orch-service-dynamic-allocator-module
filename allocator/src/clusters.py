@@ -308,7 +308,7 @@ class Clusters(object):
         for flavour, flavour_features in info_dict['flavours'].items():
             if flavour_features['ram'] >= job_args['mem'] and flavour_features['vcpus'] >= job_args['vCPU']:
                 selected_flavours.append({'flavour':flavour, 'ram': flavour_features['ram'], 'vcpus':flavour_features['vcpus']})
-        if selected_flavours.size() == 0:
+        if len(selected_flavours) == 0:
             self.logger.doLog("No Flavour matches requirements")
             return False
         temp = sorted(selected_flavours, key = lambda x: (x['ram'], x['vcpus']))
