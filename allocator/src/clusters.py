@@ -304,35 +304,32 @@ class Clusters(object):
             self.logger.doLog("OS image version not available.")
             return False
         # Match flavour
-        selected_flavour = None
-        temp_selected = [100000000,10000]
+        selected_flavours = []
         for flavour, flavour_features in info_dict['flavours'].items():
             if flavour_features['ram'] >= job_args['mem'] and flavour_features['vcpus'] >= job_args['vCPU']:
-                if flavour_features['ram'] < temp_selected[0]:
-                    selected_flavour = flavour
-                    temp_selected = [flavour_features['ram'], flavour_features['vcpus']]
-                elif flavour_features['ram'] == temp_selected[0]:
-                    if flavour_features['vcpus'] < temp_selected[1]:
-                        selected_flavour = flavour
-                        temp_selected = [flavour_features['ram'], flavour_features['vcpus']]
-                else:
-                    continue
-        if selected_flavour == None:
+                selected_flavours.append({'flavour':flavour, 'ram': flavour_features['ram'], 'vcpus':flavour_features['vcpus']})
+        if selected_flavours.size() == 0:
             self.logger.doLog("No Flavour matches requirements")
             return False
-        flavour_ram = temp_selected[0]
-        flavour_vcpus = temp_selected[1]
-        # Define resources metrics
+        temp = sorted(selected_flavours, key = lambda x: (x['ram'], x['vcpus']))
+        selected_flavour = temp[0]['flavour']
         memory_metric = 1 # 10TB, max_ram = -1 means unlimited
-        if info_dict['compute']['maxTotalRAMSize'] > 0:
-            free_ram = info_dict['compute']['maxTotalRAMSize'] - info_dict['compute']['totalRAMUsed']
-            denominator = info_dict['compute']['maxTotalRAMSize']
-            memory_metric = (free_ram - job_args['inst']*flavour_ram) / denominator
         cpu_metric = 1
-        if info_dict['compute']['maxTotalCores'] > 0:
-            free_cores = info_dict['compute']['maxTotalCores'] - info_dict['compute']['totalCoresUsed']
-            denominator = info_dict['compute']['maxTotalCores']
-            cpu_metric = (free_cores - job_args['inst']*flavour_vcpus) / denominator
+        for flavour in temp:
+            # Define resources metrics
+            if info_dict['compute']['maxTotalRAMSize'] > 0:
+                free_ram = info_dict['compute']['maxTotalRAMSize'] - info_dict['compute']['totalRAMUsed']
+                denominator = info_dict['compute']['maxTotalRAMSize']
+                memory_metric = (free_ram - job_args['inst']*flavour['ram']) / denominator
+            if info_dict['compute']['maxTotalCores'] > 0:
+                free_cores = info_dict['compute']['maxTotalCores'] - info_dict['compute']['totalCoresUsed']
+                denominator = info_dict['compute']['maxTotalCores']
+                cpu_metric = (free_cores - job_args['inst']*flavour['vcpus']) / denominator
+            if cpu_metric <= 0 or memory_metric <= 0:
+                continue
+            else:
+                selected_flavour = flavour['flavour']
+                break
         instances_metric = 1
         if info_dict['compute']['maxTotalInstances'] > 0:
             free_instances = info_dict['compute']['maxTotalInstances'] - info_dict['compute']['totalInstancesUsed']
