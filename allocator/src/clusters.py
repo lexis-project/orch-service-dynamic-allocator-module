@@ -199,13 +199,13 @@ class Clusters(object):
             if len(av_queues) == 0:
                 continue
             if self.check_refresh_token(token) == False:
-                return False
+                continue
             resubmit = False
             if job_args['original_request_id'] != "":
                 resubmit = True
             queue_status = center.update_cluster(cluster, "testuser", token['access_token'], resubmit)
             if queue_status == False:
-                return False
+                continue
             if len(queue_status) == 0:
                 continue
             res = dict()
@@ -223,7 +223,7 @@ class Clusters(object):
                 continue
             total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
             if origins == False:
-                return False
+                continue
             else:
                 data_tranf_score = 1 - (total_max_time / (total_max_time + job_args['max_walltime']))
             check = True
@@ -305,8 +305,7 @@ class Clusters(object):
             return False
         # Match flavour
         selected_flavour = None
-        selected_features = [100000000,10000]
-        temp_selected = selected_features
+        temp_selected = [100000000,10000]
         for flavour, flavour_features in info_dict['flavours'].items():
             if flavour_features['ram'] >= job_args['mem'] and flavour_features['vcpus'] >= job_args['vCPU']:
                 if flavour_features['ram'] < temp_selected[0]:
@@ -321,28 +320,29 @@ class Clusters(object):
         if selected_flavour == None:
             self.logger.doLog("No Flavour matches requirements")
             return False
-
         flavour_ram = temp_selected[0]
         flavour_vcpus = temp_selected[1]
         # Define resources metrics
-        free_ram = 10000000 # 10TB, max_ram = -1 means unlimited
-        denominator = free_ram
+        memory_metric = 1 # 10TB, max_ram = -1 means unlimited
         if info_dict['compute']['maxTotalRAMSize'] > 0:
             free_ram = info_dict['compute']['maxTotalRAMSize'] - info_dict['compute']['totalRAMUsed']
             denominator = info_dict['compute']['maxTotalRAMSize']
-        memory_metric = (free_ram - job_args['inst']*flavour_ram) / denominator
-        free_cores = 10000
-        denominator = free_cores
+            memory_metric = (free_ram - job_args['inst']*flavour_ram) / denominator
+        cpu_metric = 1
         if info_dict['compute']['maxTotalCores'] > 0:
             free_cores = info_dict['compute']['maxTotalCores'] - info_dict['compute']['totalCoresUsed']
             denominator = info_dict['compute']['maxTotalCores']
-        cpu_metric = (free_cores - job_args['inst']*flavour_vcpus) / denominator
-        free_instances = 1000
-        denominator = free_instances
+            cpu_metric = (free_cores - job_args['inst']*flavour_vcpus) / denominator
+        instances_metric = 1
         if info_dict['compute']['maxTotalInstances'] > 0:
             free_instances = info_dict['compute']['maxTotalInstances'] - info_dict['compute']['totalInstancesUsed']
             denominator = info_dict['compute']['maxTotalInstances']
-        instances_metric = (free_instances - job_args['inst']) / denominator
+            instances_metric = (free_instances - job_args['inst']) / denominator
+        storage_metric = 1
+        if info_dict['storage']['maxTotalVolumeGigabytes'] > 0:
+            free_storage = info_dict['storage']['maxTotalVolumeGigabytes'] - info_dict['storage']['totalGigabytesUsed']
+            denominator = info_dict['storage']['maxTotalVolumeGigabytes']
+            storage_metric = (free_storage - job_args['inst']*job_args['disk']) / denominator
         total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
         data_tranf_score = 1
         if origins == False:
@@ -355,6 +355,7 @@ class Clusters(object):
         values.append( memory_metric )
         values.append( cpu_metric )
         values.append( instances_metric )
+        values.append( storage_metric )
         if len(job_args['storage_inputs']) != 0:
             values.append( data_tranf_score )
         res['real_mean'] = 0
