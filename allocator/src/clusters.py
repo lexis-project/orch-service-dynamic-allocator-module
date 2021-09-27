@@ -20,8 +20,6 @@ class Clusters(object):
         self.logger = logger
         self.api = api
         self.job_list_file = '../dbs/'+lxc.lxm_conf["lxm_db2"]+'_persistent_job_list'
-        # self.job_list = shelve.open('../dbs/'+lxc.lxm_conf["lxm_db2"]+'_persistent_job_list',flag='c', writeback=True)
-        # self.job_list.close()
         self.default_transfer_speeds = dict()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
