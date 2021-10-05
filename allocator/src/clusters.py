@@ -86,15 +86,16 @@ class Clusters(object):
 
     def get_maintenance_dates(self, center, machine, now):
         dates = self.api.get_programmed_maintenance(center + "_" + machine)
+        ret = []
         if dates[1] != 200:
-            False
+            self.logger.doLog("err: error during the maintenance dates listing. Ignoring the functionality.")
+            return ret
         else:
             dates = dates[0]['message']
-        ret = []
         if isinstance(dates, list):
             for date in dates:
                 end = datetime.datetime.strptime(date['end_maintenance'], "%Y%m%d(%H:%M)")
-                if now > end:
+                if now < end:
                     start = datetime.datetime.strptime(date['start_maintenance'], "%Y%m%d(%H:%M)")
                     ret.append((start, end))
         return ret
@@ -288,6 +289,7 @@ class Clusters(object):
                 check = False
                 break
         if not check:
+            self.logger.doLog("Openstack of center %s is in maintenance. Skipping." %(center.name))
             return False
         if info_dict['network']['floatingip']['limit'] - info_dict['network']['floatingip']['used'] <= 0 and info_dict['network']['floatingip']['limit'] >= 0:
             self.logger.doLog("Floating IP quota reached!")
