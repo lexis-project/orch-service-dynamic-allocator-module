@@ -17,12 +17,12 @@ class BaseSchema(Schema):
     number = fields.Integer(validate=validate_quantity, required=True)
     project = fields.String(required=True)
     storage_inputs = fields.List(fields.Nested(LocationSchema), required=True)
+    original_request_id = fields.String(required=True)
 
 class HPCSchema(BaseSchema):
     max_walltime = fields.Integer(validate=validate_quantity, required=True)
     max_cores = fields.Integer(validate=validate_quantity, required=True)
     taskName = fields.String(required=True)
-    resubmit = fields.Boolean(required=False)
 
 class CloudSchema(BaseSchema):
     os_version = fields.String(required=True)

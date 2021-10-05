@@ -361,16 +361,16 @@ class APIRest:
         return (jmsg, ret[1])
 
     # insert the evaluation in the influxdb (db2): 
-    def write_evaluation(self, job_id):
+    def write_evaluation(self, job_id, job_list):
         ret = True
         jmm = {}
         start = True
         r = ""
         if (self.db_active2 == True):
-            for queue in self.platform.job_list[job_id]['val']:
+            for queue in job_list['val']:
                 if (start == False):
                     r += ","
-                if self.platform.job_list[job_id]['params']['type'] == "cloud" or ( self.platform.job_list[job_id]['params']['type'] == "both" and "cluster_id" not in queue['dest'].keys() ) :
+                if job_list['params']['type'] == "cloud" or ( job_list['params']['type'] == "both" and "cluster_id" not in queue['dest'].keys() ) :
                     m = str(queue['dest']['location']) + "_cloud"
                     jmm[m] = queue['mean']
                 else:
@@ -379,7 +379,7 @@ class APIRest:
                 r += "%s:%.5f" % (m, jmm[m])
                 start = False
             db_body = [{'measurement':'machineEvaluation', \
-                    'tags':{'job_id':job_id, 'job_type':self.platform.job_list[job_id]['params']['type'], 'id':self.idx2}, \
+                    'tags':{'job_id':job_id, 'job_type':job_list['params']['type'], 'id':self.idx2}, \
                         'fields':{'rank':r}}]
             self.idx2 += 1
             if (self.verbosity > 1):
@@ -390,8 +390,8 @@ class APIRest:
             else:
                 self.logger.doLog("ended evaluation '/evaluate/machines' [war: evaluation failed for some of the machines]")
         else:
-                self.logger.doLog("ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]" % (self.db_name_2))
-                return False
+            self.logger.doLog("ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]" % (self.db_name_2))
+            return False
         return True
 
     # stop the server execution quietly 
@@ -1005,7 +1005,7 @@ class APIRest:
             if ((args['type'] != 'hpc') and (args['type'] != 'cloud')):
                 jmsg['message'] = "wrong input parameter(s)"
                 jmsg['status'] = 'err'
-                self.logger.doLog("served '/evaluate/machines' [err: wrong input parameter(s) -- type (%s), job_id (%d)]" % (args['type'], args['job_id']))
+                self.logger.doLog("served '/evaluate/machines' [err: wrong input parameter(s)")
                 state = 400
                 return (jsonify(jmsg), state)
             elif args['type'] == 'cloud':
@@ -1035,7 +1035,7 @@ class APIRest:
             self.platform.evaluate(a_dict, token)
             jmsg['message'] = "evaluation ongoing for all the machines"
             jmsg['status'] = 'ok'
-            self.logger.doLog("served '/evaluate/machines' [ok]")
+            self.logger.doLog("served '/evaluate/machines' [ok] -- type (%s), job_id (%s)]" % (args['type'], a_dict['job_id']))
             if (self.db_active2 != True):
                 jmsg['message'] = "the database ('%s') is not active or has been deleted" % (self.db_name_2)
                 jmsg['status'] = 'err'
@@ -1093,15 +1093,15 @@ class APIRest:
             if auth_res['status'] != 200 or auth_res['jmsg'] == "not active":
                 self.logger.doLog("served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]" % (auth_res['status'], auth_res['jmsg']))
                 return (jsonify(auth_res['jmsg']), auth_res['status'])
-            if job_id not in self.platform.get_job_list():
+            if not self.platform.job_id_exists(job_id):
                 jmsg['message'] = []
                 jmsg['status'] = 'err. job ID is not valid -- call evaluation endpoint first'
                 self.logger.doLog("served '/get/machines/%s' [err: %s is not a valid ID for a job]" % (job_id, job_id))
                 state = 400
             else:
-                if self.platform.get_job_list()[job_id]['status'] != "done":
+                if self.platform.get_job_info(job_id)['status'] != "done":
                     jmsg['message'] = []
-                    jmsg['status'] = self.platform.get_job_list()[job_id]['status'] + ". " + self.platform.get_job_list()[job_id]['msg']
+                    jmsg['status'] = self.platform.get_job_info(job_id)['status'] + ". " + self.platform.get_job_info(job_id)['msg']
                 else:
                     best_machines = self.platform.get_best_machines(job_id)
                     if len(best_machines) == 0:
@@ -1127,7 +1127,7 @@ class APIRest:
             if auth_res['status'] != 200 or auth_res['jmsg'] == "not active":
                 self.logger.doLog("served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]" % (auth_res['status'], auth_res['jmsg']))
                 return (jsonify(auth_res['jmsg']), auth_res['status'])
-            if (job_id not in self.platform.get_job_list()):
+            if not self.platform.job_id_exists(job_id):
                 jmsg['message'] = "job ID is not valid"
                 jmsg['status'] = 'err'
                 self.logger.doLog("served '/evaluate/machines/remove/%d [err: %d is not a valid Id for a job]'" % (job_id, job_id))

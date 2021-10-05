@@ -5,6 +5,7 @@ import lxmlog
 import datetime
 import uuid
 import re
+import shelve
 import math
 from HeappeClient import HeappeClient
 from OpenStackClient import OpenStackClient, compare_image_names
@@ -18,7 +19,7 @@ class Clusters(object):
     def __init__(self, logger, lxc, api):
         self.logger = logger
         self.api = api
-        self.job_list = dict()
+        self.job_list_file = '../dbs/'+lxc.lxm_conf["lxm_db2"]+'_persistent_job_list'
         self.default_transfer_speeds = dict()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
@@ -62,13 +63,14 @@ class Clusters(object):
         if len(self.clusters_list) == 0:
             self.logger.doLog("WARNING: no cluster attached!")
 
-    # class methods
+    # class methodsq
     # add new job list element
     def new_job_req(self):
         uid = str(uuid.uuid4())
-        self.job_list[uid] = dict()
-        self.job_list[uid]['status'] = "ongoing"
-        self.job_list[uid]['msg'] = ""
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[uid] = dict()
+            job_list[uid]['status'] = "ongoing"
+            job_list[uid]['msg'] = ""
         return uid
 
     #update cluster name
@@ -97,9 +99,22 @@ class Clusters(object):
                     ret.append((start, end))
         return ret
 
-    # get the list of scheduled jobs
-    def get_job_list(self):
-        return self.job_list
+    # get the dictionary of all scheduled jobs, may eat up much memory
+    def dump_job_list_dict(self):
+        with shelve.open(self.job_list_file) as job_list:
+            dict_job_list = dict(job_list)
+        return dict_job_list
+    
+    def job_id_exists(self, job_id):
+        with shelve.open(self.job_list_file) as job_list:
+            if job_id in job_list:
+                return True
+        return False
+    
+    def get_job_info(self, job_id):
+        with shelve.open(self.job_list_file) as job_list:
+            temp = dict(job_list[job_id])
+        return temp
 
     # check token validation and eventually refresh
     def check_refresh_token(self, token):
@@ -172,7 +187,7 @@ class Clusters(object):
         return tot_transf_time, origins
 
     # weighted criteria mean for HPC clusters
-    def HPC_weighted_criteria_mean(self, job_args, center, heappe_endpoint, hpc_project, token):
+    def HPC_weighted_criteria_mean(self, job_args, center, heappe_endpoint, hpc_project, banned_sites, token):
         if self.check_refresh_token(token) == False:
             return False
         if center.get_heappe(heappe_endpoint, token) == False:
@@ -187,9 +202,10 @@ class Clusters(object):
                 continue
             if self.check_refresh_token(token) == False:
                 continue
-            if "resubmit" not in job_args.keys():
-                job_args['resubmit'] = False
-            queue_status = center.update_cluster(cluster, "testuser", token['access_token'], job_args['resubmit'])
+            resubmit = False
+            if job_args['original_request_id'] != "":
+                resubmit = True
+            queue_status = center.update_cluster(cluster, "testuser", token['access_token'], resubmit)
             if queue_status == False:
                 continue
             if len(queue_status) == 0:
@@ -204,6 +220,8 @@ class Clusters(object):
             task = dict()
             task['name'] = job_args['taskName']
             if res['dest']['cluster_id'] < 0:
+                continue
+            if (res['dest']['location'], res['dest']['cluster_id']) in banned_sites:
                 continue
             check = True
             now = datetime.datetime.now()
@@ -242,7 +260,8 @@ class Clusters(object):
                 res['mean'] /= len(values)
                 if res['mean'] <= 0:
                     continue
-                self.job_list[job_args['job_id']]['val'].append(res)
+                with shelve.open(self.job_list_file, writeback=True) as job_list:
+                    job_list[job_args['job_id']]['val'].append(res)
             #End of the loop over queue types
         return True
 
@@ -284,35 +303,32 @@ class Clusters(object):
             self.logger.doLog("OS image version not available.")
             return False
         # Match flavour
-        selected_flavour = None
-        temp_selected = [100000000,10000]
+        selected_flavours = []
         for flavour, flavour_features in info_dict['flavours'].items():
             if flavour_features['ram'] >= job_args['mem'] and flavour_features['vcpus'] >= job_args['vCPU']:
-                if flavour_features['ram'] < temp_selected[0]:
-                    selected_flavour = flavour
-                    temp_selected = [flavour_features['ram'], flavour_features['vcpus']]
-                elif flavour_features['ram'] == temp_selected[0]:
-                    if flavour_features['vcpus'] < temp_selected[1]:
-                        selected_flavour = flavour
-                        temp_selected = [flavour_features['ram'], flavour_features['vcpus']]
-                else:
-                    continue
-        if selected_flavour == None:
+                selected_flavours.append({'flavour':flavour, 'ram': flavour_features['ram'], 'vcpus':flavour_features['vcpus']})
+        if len(selected_flavours) == 0:
             self.logger.doLog("No Flavour matches requirements")
             return False
-        flavour_ram = temp_selected[0]
-        flavour_vcpus = temp_selected[1]
-        # Define resources metrics
+        temp = sorted(selected_flavours, key = lambda x: (x['ram'], x['vcpus']))
+        selected_flavour = temp[0]['flavour']
         memory_metric = 1 # 10TB, max_ram = -1 means unlimited
-        if info_dict['compute']['maxTotalRAMSize'] > 0:
-            free_ram = info_dict['compute']['maxTotalRAMSize'] - info_dict['compute']['totalRAMUsed']
-            denominator = info_dict['compute']['maxTotalRAMSize']
-            memory_metric = (free_ram - job_args['inst']*flavour_ram) / denominator
         cpu_metric = 1
-        if info_dict['compute']['maxTotalCores'] > 0:
-            free_cores = info_dict['compute']['maxTotalCores'] - info_dict['compute']['totalCoresUsed']
-            denominator = info_dict['compute']['maxTotalCores']
-            cpu_metric = (free_cores - job_args['inst']*flavour_vcpus) / denominator
+        for flavour in temp:
+            # Define resources metrics
+            if info_dict['compute']['maxTotalRAMSize'] > 0:
+                free_ram = info_dict['compute']['maxTotalRAMSize'] - info_dict['compute']['totalRAMUsed']
+                denominator = info_dict['compute']['maxTotalRAMSize']
+                memory_metric = (free_ram - job_args['inst']*flavour['ram']) / denominator
+            if info_dict['compute']['maxTotalCores'] > 0:
+                free_cores = info_dict['compute']['maxTotalCores'] - info_dict['compute']['totalCoresUsed']
+                denominator = info_dict['compute']['maxTotalCores']
+                cpu_metric = (free_cores - job_args['inst']*flavour['vcpus']) / denominator
+            if cpu_metric <= 0 or memory_metric <= 0:
+                continue
+            else:
+                selected_flavour = flavour['flavour']
+                break
         instances_metric = 1
         if info_dict['compute']['maxTotalInstances'] > 0:
             free_instances = info_dict['compute']['maxTotalInstances'] - info_dict['compute']['totalInstancesUsed']
@@ -351,7 +367,8 @@ class Clusters(object):
         if len(job_args['storage_inputs']) != 0:
             res['mean'] = data_tranf_score
         res['dest']['flavour'] = selected_flavour
-        self.job_list[job_args['job_id']]['val'].append(res)
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[job_args['job_id']]['val'].append(res)
         return True
 
     def backend_av_resources(self, projectID, token):
@@ -370,22 +387,44 @@ class Clusters(object):
             self.logger.doLog('Available resource for project request failed ')
             return False
 
+    def get_banned_sites(self, original_request_id):
+        ret_cloud = []
+        ret_hpc = []
+        if original_request_id is not "":
+            with shelve.open(self.job_list_file, writeback=True) as job_list:
+                while original_request_id is not "":
+                    if 'res' not in job_list[original_request_id].keys():
+                        self.logger.doLog("WAR: results for original_request_id %s have never been asked. Banned sites listing procedure will be truncated." %(original_request_id))
+                        break
+                    for item in job_list[original_request_id]['res']:
+                        if item[1] == "cloud":
+                            ret_cloud.append(item[0])
+                        else:
+                            ret_hpc.append(item)
+                    original_request_id = job_list[original_request_id]['params']['original_request_id']
+        return ret_hpc, ret_cloud
+
 	# evaluate all the available machines based on the weighted criteria mean
     def evaluate(self, args, token):
-        self.job_list[args['job_id']]['params'] = args
-        self.job_list[args['job_id']]['val'] = []
-        av_resources = self.backend_av_resources(args['project'], token)
-        if av_resources == False:
-            self.job_list[args['job_id']]['status'] = "err"
-            self.job_list[args['job_id']]['msg'] = "auth_backend"
-            self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
-            return (0)
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[args['job_id']]['params'] = args
+            job_list[args['job_id']]['val'] = []
+            av_resources = self.backend_av_resources(args['project'], token)
+            if av_resources == False:
+                job_list[args['job_id']]['status'] = "err"
+                job_list[args['job_id']]['msg'] = "auth_backend"
+                self.logger.doLog("Cannot authenticate in LEXIS backend or cannot refresh not active token")
+                return (0)
+            if args['original_request_id'] != "" and args['original_request_id'] not in job_list.keys():
+                self.logger.doLog("WAR: original_request_id %s is provided but does not exist in the DB. Ignoring the failover functionality." %(args['original_request_id']))
+                args['original_request_id'] = ""
+        banned_sites_hpc, banned_sites_cloud = self.get_banned_sites(args['original_request_id'])
         check = False
         if args['type'] == "both" or args['type'] == "cloud":
             items = (x for x in av_resources if x["ResourceType"] == "CLOUD")
             for item in items:
                 for center in self.clusters_info:
-                    if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
+                    if "cloud" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()) or center in banned_sites_cloud:
                         continue
                     else:
                         if self.Cloud_weighted_criteria_mean(args, self.clusters_info[center]['cloud'], item['OpenStackEndpoint'], item['CloudNetworkName'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], token) == True:
@@ -398,33 +437,42 @@ class Clusters(object):
                     if "hpc" not in self.clusters_info[center].keys() or (center != item["HPCProvider"] and center != item["HPCProvider"].lower()):
                         continue
                     else:
-                        if self.HPC_weighted_criteria_mean(args, self.clusters_info[center]['hpc'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], token) == True:
+                        if self.HPC_weighted_criteria_mean(args, self.clusters_info[center]['hpc'], item['HEAppEEndpoint'], item['AssociatedHPCProject'], banned_sites_hpc, token) == True:
                             check = True
                         break
-        if check == True:
-            self.job_list[args['job_id']]['status'] = "done"
-            self.job_list[args['job_id']]['msg'] = "evaluation successfully ended."
-        else:
-            self.job_list[args['job_id']]['status'] = "err"
-            self.job_list[args['job_id']]['msg'] = "evaluation failed."
-        if self.api.write_evaluation(args['job_id']) == False:
-            self.job_list[args['job_id']]['msg'] = self.job_list[args['job_id']]['msg'] + " WAR: could not write the result in the DB. DB not available."
-        return (0)
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            if check == True:
+                job_list[args['job_id']]['status'] = "done"
+                job_list[args['job_id']]['msg'] = "evaluation successfully ended."
+            else:
+                job_list[args['job_id']]['status'] = "err"
+                job_list[args['job_id']]['msg'] = "evaluation failed."
+            if self.api.write_evaluation(args['job_id'], dict(job_list[args['job_id']])) == False:
+                job_list[args['job_id']]['msg'] = job_list[args['job_id']]['msg'] + " WAR: could not write the result in the DB. DB not available."
+        return args['job_id']
 
 
-    # delete a job previously inserted in the system
+    # # delete a job previously inserted in the system
     def remove_job(self, job_id):
-        del self.job_list[job_id]
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            del job_list[job_id]
         return (0)
 
 
     # get the best machine(s) where to run a given job (job_id)
     def get_best_machines(self, job_id):
         results = []
-        temp = sorted(self.job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
-        for i in temp:
-            if (len(results) >= self.job_list[job_id]['params']['number']):
-                break
-            elif (i['mean'] > 0):
-                results.append(i['dest'])
+        with shelve.open(self.job_list_file, writeback=True) as job_list:
+            job_list[job_id]['res'] = []
+            temp = sorted(job_list[job_id]['val'], key = lambda x: x['mean'], reverse=True)
+            for i in temp:
+                if (len(results) >= job_list[job_id]['params']['number']):
+                    break
+                elif (i['mean'] > 0):
+                    results.append(i['dest'])
+                    if 'cluster_id' in i['dest'].keys():
+                        cluster = i['dest']['cluster_id']
+                    else:
+                        cluster = "cloud"
+                    job_list[job_id]['res'].append((i['dest']['location'], cluster))
         return (results)
