@@ -177,6 +177,10 @@ class Clusters(object):
             return False
         if center.get_heappe(heappe_endpoint, token) == False:
             return False
+        total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
+        if origins == False:
+            return False
+        data_tranf_score = 1 - (total_max_time / (total_max_time + job_args['max_walltime']))
         for cluster in center.av_clusters():
             av_queues = center.check_template_queues(cluster, job_args['taskName'])
             if len(av_queues) == 0:
@@ -201,17 +205,13 @@ class Clusters(object):
             task['name'] = job_args['taskName']
             if res['dest']['cluster_id'] < 0:
                 continue
-            total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
-            if origins == False:
-                continue
-            else:
-                data_tranf_score = 1 - (total_max_time / (total_max_time + job_args['max_walltime']))
             check = True
-            for maintenance in self.get_maintenance_dates(center.name, cluster, datetime.datetime.now()):
-                if datetime.datetime.now() <= maintenance[1] and datetime.datetime.now() >= maintenance[0]:
+            now = datetime.datetime.now()
+            for maintenance in self.get_maintenance_dates(center.name, cluster, now):
+                if now <= maintenance[1] and now >= maintenance[0]:
                     check = False
                     break
-                elif datetime.datetime.now() + datetime.timedelta(seconds=total_max_time + job_args['max_walltime']) >= maintenance[0] and datetime.datetime.now() <= maintenance[0]:
+                elif now + datetime.timedelta(seconds=total_max_time + job_args['max_walltime']) >= maintenance[0] and now <= maintenance[0]:
                     check = False
                     break
             if not check:
@@ -263,8 +263,9 @@ class Clusters(object):
             self.logger.doLog("Openstack auth failed/unreachable for center %s" %(center.name))
             return False
         check = True
-        for maintenance in self.get_maintenance_dates(center.name, "cloud", datetime.datetime.now()):
-            if datetime.datetime.now() <= maintenance[1] and datetime.datetime.now() >= maintenance[0]:
+        now = datetime.datetime.now()
+        for maintenance in self.get_maintenance_dates(center.name, "cloud", now):
+            if now <= maintenance[1] and now >= maintenance[0]:
                 check = False
                 break
         if not check:
