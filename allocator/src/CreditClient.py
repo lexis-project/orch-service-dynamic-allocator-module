@@ -18,10 +18,13 @@ class HeappeClient():
         self.project_info_dict = None
         self.session_code = None
         
-    def get_system_status(self):
+    def get_system_status(self, id=None):
         self.logger.doLog('Reporting basic system status')
+        endpoint = '/status'
+        if id != None:
+            enpoint = endpoint + '/' + str(id)
         try:
-            r = requests.get(url+'/status', timeout=default_timeout)
+            r = requests.get(self.base_url+endpoint, timeout=default_timeout)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))
@@ -35,23 +38,18 @@ class HeappeClient():
         except requests.exceptions.RequestException as err:
             self.logger.doLog(str(err))
             return False
-        info_dict = {}
         if (r.status_code == 200):
             self.logger.doLog('System status fetched')
-            return info_dict
+            return r.json()
         else:
             self.logger.doLog('System status failed')
             return False
 
-
-    def auth(self, user, password):
-        headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json-patch+json',
-        }
-        data = '{"Credentials":{"Password":"'+password+'","Username":"'+user+'"}}'
+    def get_available(self, id):
+        self.logger.doLog('Credit status of the account with the provided id')
+        endpoint = '/account/available' + '/' + str(id)
         try:
-            r = requests.post(self.base_url+'/heappe/UserAndLimitationManagement/AuthenticateUserPassword', headers=headers, data=data)
+            r = requests.get(self.base_url+endpoint, timeout=default_timeout)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))
@@ -66,10 +64,8 @@ class HeappeClient():
             self.logger.doLog(str(err))
             return False
         if (r.status_code == 200):
-            self.session_code = r.json()
-            self.logger.doLog('Status correctly obtained')
-            return True
+            self.logger.doLog('Available credits fetched')
+            return r.json()
         else:
-            self.logger.doLog('Auth failed')
+            self.logger.doLog('Get available credits failed failed')
             return False
-    
