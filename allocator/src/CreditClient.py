@@ -3,28 +3,29 @@ import json
 import sys
 import datetime
 import math
-from lxmlog import LXMlog as lxmlog 
+from lxmlog import LXMlog as lxmlog
 
 default_timeout = 6
+
 
 class HeappeClient():
 
     def __init__(self, url, logger):
-        self.logger = logger        
+        self.logger = logger
         self.base_url = url
         self.info_dict = self.init_info(self.base_url)
-        if self.info_dict == False:
+        if not self.info_dict:
             return None
         self.project_info_dict = None
         self.session_code = None
-        
+
     def get_system_status(self, id=None):
         self.logger.doLog('Reporting basic system status')
         endpoint = '/status'
-        if id != None:
+        if id is not None:
             enpoint = endpoint + '/' + str(id)
         try:
-            r = requests.get(self.base_url+endpoint, timeout=default_timeout)
+            r = requests.get(self.base_url + endpoint, timeout=default_timeout)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))
@@ -49,7 +50,7 @@ class HeappeClient():
         self.logger.doLog('Credit status of the account with the provided id')
         endpoint = '/account/available' + '/' + str(id)
         try:
-            r = requests.get(self.base_url+endpoint, timeout=default_timeout)
+            r = requests.get(self.base_url + endpoint, timeout=default_timeout)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))

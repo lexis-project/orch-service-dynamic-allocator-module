@@ -8,18 +8,20 @@ import subprocess as cli
 
 # constants
 api_script_path = os.path.dirname(os.path.realpath(__file__))
-config_path = os.path.join( api_script_path, '..', 'config', 'lxm.conf' )
+config_path = os.path.join(api_script_path, '..', 'config', 'lxm.conf')
 
 
 # main function
 def main():
-    #get the configuration
+    # get the configuration
     lxc = lxconf()
     lxc.getConfiguration(config_path)
     # get a valid influxdb client
-    idbc = InfluxDBClient(host=lxc.lxm_conf["influx_server"], port=lxc.lxm_conf["influx_port"])
+    idbc = InfluxDBClient(
+        host=lxc.lxm_conf["influx_server"],
+        port=lxc.lxm_conf["influx_port"])
     # check if the database is available
-    dbs = idbc.get_list_database()    
+    dbs = idbc.get_list_database()
     i = 0
     # check if the database is available created
     db_exist = False
@@ -51,13 +53,14 @@ def main():
             endm = datetime.datetime.strptime(fields[2], "%Y%m%d(%H:%M)")
             if (endm < today):
                 # remove the entry in the influxdb table
-                idbc.query('DELETE FROM "systemMaintenance" WHERE time = %d' % (int(fields[0])))
+                idbc.query(
+                    'DELETE FROM "systemMaintenance" WHERE time = %d' %
+                    (int(
+                        fields[0])))
         # eventually remove the temporary file
-        ret = cli.run(['rm', '../dbs/lxm_cleanup_date.txt'], stdout=False)        
-
+        ret = cli.run(['rm', '../dbs/lxm_cleanup_date.txt'], stdout=False)
 
 
 # running the web backend server
 if __name__ == "__main__":
-    main()    
-   
+    main()
