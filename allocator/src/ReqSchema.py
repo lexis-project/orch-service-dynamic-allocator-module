@@ -12,10 +12,7 @@ def validate_list(n):
 
 
 class LocationSchema(Schema):
-    locations = fields.List(
-        fields.String(),
-        validate=validate_list,
-        required=True)
+    locations = fields.List(fields.String(), validate=validate_list, required=True)
     size = fields.Integer(validate=validate_quantity, required=True)
     numberOfFiles = fields.Integer(validate=validate_quantity, required=True)
 
