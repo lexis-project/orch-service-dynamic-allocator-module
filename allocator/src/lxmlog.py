@@ -4,10 +4,11 @@ from datetime import datetime
 
 # define a logging class
 
-"""
-Basic logger for DAM allocator
-"""
+
 class LXMlog:
+    """
+    Basic logger for DAM allocator
+    """
     # define a constructir of the class
     def __init__(self):
         self.logger = None
