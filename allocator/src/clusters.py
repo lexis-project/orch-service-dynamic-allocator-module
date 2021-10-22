@@ -99,18 +99,17 @@ class Clusters(object):
 
     def get_maintenance_dates(self, center, machine, now):
         dates = self.api.get_programmed_maintenance(center + "_" + machine)
+        ret = []
         if dates[1] != 200:
-            False
+            self.logger.doLog("err: error during the maintenance dates listing. Ignoring the functionality.")
+            return ret
         else:
             dates = dates[0]['message']
-        ret = []
         if isinstance(dates, list):
             for date in dates:
-                end = datetime.datetime.strptime(
-                    date['end_maintenance'], "%Y%m%d(%H:%M)")
-                if now > end:
-                    start = datetime.datetime.strptime(
-                        date['start_maintenance'], "%Y%m%d(%H:%M)")
+                end = datetime.datetime.strptime(date['end_maintenance'], "%Y%m%d(%H:%M)")
+                if now < end:
+                    start = datetime.datetime.strptime(date['start_maintenance'], "%Y%m%d(%H:%M)")
                     ret.append((start, end))
         return ret
 
@@ -218,6 +217,10 @@ class Clusters(object):
             return False
         if center.get_heappe(heappe_endpoint, token) is False:
             return False
+        total_max_time, origins = self.data_transf(job_args['storage_inputs'], center.name)
+        if origins == False:
+            return False
+        data_tranf_score = 1 - (total_max_time / (total_max_time + job_args['max_walltime']))
         for cluster in center.av_clusters():
             av_queues = center.check_template_queues(
                 cluster, job_args['taskName'])
@@ -248,6 +251,7 @@ class Clusters(object):
             if (res['dest']['location'], res['dest']
                     ['cluster_id']) in banned_sites:
                 continue
+<<<<<<< HEAD
             total_max_time, origins = self.data_transf(
                 job_args['storage_inputs'], center.name)
             if not origins:
@@ -261,9 +265,15 @@ class Clusters(object):
                     center.name, cluster, datetime.datetime.now()):
                 if datetime.datetime.now(
                 ) <= maintenance[1] and datetime.datetime.now() >= maintenance[0]:
+=======
+            check = True
+            now = datetime.datetime.now()
+            for maintenance in self.get_maintenance_dates(center.name, cluster, now):
+                if now <= maintenance[1] and now >= maintenance[0]:
+>>>>>>> origin/main
                     check = False
                     break
-                elif datetime.datetime.now() + datetime.timedelta(seconds=total_max_time + job_args['max_walltime']) >= maintenance[0] and datetime.datetime.now() <= maintenance[0]:
+                elif now + datetime.timedelta(seconds=total_max_time + job_args['max_walltime']) >= maintenance[0] and now <= maintenance[0]:
                     check = False
                     break
             if not check:
@@ -331,13 +341,20 @@ class Clusters(object):
                 (center.name))
             return False
         check = True
+<<<<<<< HEAD
         for maintenance in self.get_maintenance_dates(
                 center.name, "cloud", datetime.datetime.now()):
             if datetime.datetime.now(
             ) <= maintenance[1] and datetime.datetime.now() >= maintenance[0]:
+=======
+        now = datetime.datetime.now()
+        for maintenance in self.get_maintenance_dates(center.name, "cloud", now):
+            if now <= maintenance[1] and now >= maintenance[0]:
+>>>>>>> origin/main
                 check = False
                 break
         if not check:
+            self.logger.doLog("Openstack of center %s is in maintenance. Skipping." %(center.name))
             return False
         if info_dict['network']['floatingip']['limit'] - \
                 info_dict['network']['floatingip']['used'] <= 0 and info_dict['network']['floatingip']['limit'] >= 0:
