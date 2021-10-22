@@ -4,7 +4,9 @@ from datetime import datetime
 
 # define a logging class
 
-
+"""
+Basic logger for DAM allocator
+"""
 class LXMlog:
     # define a constructir of the class
     def __init__(self):

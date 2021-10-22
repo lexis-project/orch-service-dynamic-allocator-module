@@ -214,16 +214,16 @@ class Clusters(object):
             hpc_project,
             banned_sites,
             token):
-        if self.check_refresh_token(token) == False:
+        if self.check_refresh_token(token) is False:
             return False
-        if center.get_heappe(heappe_endpoint, token) == False:
+        if center.get_heappe(heappe_endpoint, token) is False:
             return False
         for cluster in center.av_clusters():
             av_queues = center.check_template_queues(
                 cluster, job_args['taskName'])
             if len(av_queues) == 0:
                 continue
-            if self.check_refresh_token(token) == False:
+            if self.check_refresh_token(token) is False:
                 continue
             resubmit = False
             if job_args['original_request_id'] != "":

@@ -1,14 +1,15 @@
-import requests
 import json
 import datetime
 import math
+import requests
 
-default_timeout = 6
+DEFAULT_TIMEOUT = 6
 
 
 def datetime_to_json(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
+    return None
 
 
 class HeappeClient():
@@ -29,7 +30,7 @@ class HeappeClient():
         try:
             r = requests.get(
                 url + '/heappe/ClusterInformation/ListAvailableClusters',
-                timeout=default_timeout)
+                timeout=DEFAULT_TIMEOUT)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))
@@ -98,7 +99,7 @@ class HeappeClient():
         except requests.exceptions.RequestException as err:
             self.logger.doLog(str(err))
             return False
-        if (r.status_code == 200):
+        if r.status_code == 200:
             self.session_code = r.json()
             self.logger.doLog('=== Successfully authenticated ===')
             return True
@@ -159,7 +160,7 @@ class HeappeClient():
                 '/heappe/ClusterInformation/CurrentClusterNodeUsage',
                 headers=headers,
                 data=data,
-                timeout=default_timeout)
+                timeout=DEFAULT_TIMEOUT)
             r.raise_for_status()
         except requests.exceptions.HTTPError as errh:
             self.logger.doLog(str(errh))
@@ -173,7 +174,7 @@ class HeappeClient():
         except requests.exceptions.RequestException as err:
             self.logger.doLog(str(err))
             return False
-        if (r.status_code == 200):
+        if r.status_code == 200:
             data = json.loads(r.content)
             return data
         else:
