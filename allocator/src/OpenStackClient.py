@@ -1,3 +1,6 @@
+import json
+import requests
+import re
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
@@ -5,10 +8,6 @@ from novaclient import client as nova_client
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from neutronclient.v2_0 import client as neutron_client
-import json
-import requests
-import re
-from lxmlog import LXMlog as lxmlog
 
 
 def compare_image_names(job_img, openstack_img):
@@ -196,9 +195,8 @@ class OpenStackClient:
         self.session = None
         if openstack_url is None:
             return False
-        else:
-            openstack_url = openstack_url + ":5000"
-            self.set_auth_url(openstack_url)
+        openstack_url = openstack_url + ":5000"
+        self.set_auth_url(openstack_url)
         if heappe_url is not None:
             if not self.auth_heappe(heappe_url, user, token):
                 self.logger.doLog("Openstack openid token authentication failed")

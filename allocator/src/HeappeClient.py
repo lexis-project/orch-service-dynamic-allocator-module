@@ -13,14 +13,17 @@ def datetime_to_json(o):
 
 
 class HeappeClient:
-    def __init__(self, url, logger):
+    def __init__(self, url, logger, center=''):
         self.logger = logger
         self.base_url = url
         self.info_dict = self.init_info(self.base_url)
         if not self.info_dict:
-            return None
+            self.logger.doLog(
+                    "ERROR: invalid initialization from %s" % (self.base_url)
+                )
         self.project_info_dict = None
         self.session_code = None
+        self.name = center
 
     def init_info(self, url):
         if url is None:
@@ -74,6 +77,7 @@ class HeappeClient:
     def av_clusters(self):
         if self.project_info_dict is not None:
             return self.project_info_dict.keys()
+        return False
 
     def auth(self, user, password):
         headers = {
@@ -107,9 +111,8 @@ class HeappeClient:
             self.session_code = r.json()
             self.logger.doLog("=== Successfully authenticated ===")
             return True
-        else:
-            self.logger.doLog("Auth failed")
-            return False
+        self.logger.doLog("Auth failed")
+        return False
 
     def auth_openid(self, user, token):
         headers = {
@@ -147,15 +150,15 @@ class HeappeClient:
             self.session_code = r.json()
             self.logger.doLog("=== Successfully authenticated with OpenId ===")
             return True
-        else:
-            self.logger.doLog("Auth failed")
-            return False
+        self.logger.doLog("Auth failed")
+        return False
 
     def get_queue_static_info(self, cluster, queue):
         queue_list = self.info_dict[cluster]["NodeTypes"]
         for item in queue_list:
             if item["Name"] == queue:
                 return item
+        return False
 
     def get_queue_info(self, qid):
         headers = {
@@ -192,9 +195,8 @@ class HeappeClient:
         if r.status_code == 200:
             data = json.loads(r.content)
             return data
-        else:
-            self.logger.doLog("Failed request for queue info for other reasons")
-            return False
+        self.logger.doLog("Failed request for queue info for other reasons")
+        return False
 
     def check_template_queues(self, cluster, template_name):
         ret = []
@@ -213,8 +215,7 @@ class HeappeClient:
     def get_av_cluster_id(self, cluster):
         if cluster not in self.project_info_dict.keys():
             return -1
-        else:
-            return self.project_info_dict[cluster]["Id"]
+        return self.project_info_dict[cluster]["Id"]
 
     def update_cluster(self, cluster, user, token, resubmit, passauth=False):
         temp = self.init_info(self.base_url)
@@ -223,20 +224,19 @@ class HeappeClient:
                 "WARNING: cannot contact service Heappe Instance: " + str(self.base_url)
             )
             return False
+        check = False
+        if temp.keys() != self.info_dict.keys():
+            check = True
         else:
-            check = False
-            if temp.keys() != self.info_dict.keys():
-                check = True
-            else:
-                for cluster_it in temp:
-                    if (
-                        temp[cluster_it]["NodeTypes"]
-                        != self.info_dict[cluster_it]["NodeTypes"]
-                    ):
-                        check = True
-                        break
-            if check:
-                self.info_dict = temp
+            for cluster_it in temp:
+                if (
+                    temp[cluster_it]["NodeTypes"]
+                    != self.info_dict[cluster_it]["NodeTypes"]
+                ):
+                    check = True
+                    break
+        if check:
+            self.info_dict = temp
         if cluster not in self.info_dict:
             return False
         self.logger.doLog("Updating status for cluster: " + cluster)

@@ -1,28 +1,21 @@
 import requests
-import json
-import sys
-import datetime
-import math
 from lxmlog import LXMlog as lxmlog
 
 default_timeout = 6
 
 
-class HeappeClient:
+class CreditClient:
     def __init__(self, url, logger):
         self.logger = logger
         self.base_url = url
-        self.info_dict = self.init_info(self.base_url)
-        if not self.info_dict:
-            return None
         self.project_info_dict = None
         self.session_code = None
 
-    def get_system_status(self, id=None):
+    def get_system_status(self, lexis_id=None):
         self.logger.doLog("Reporting basic system status")
         endpoint = "/status"
-        if id is not None:
-            enpoint = endpoint + "/" + str(id)
+        if lexis_id is not None:
+            enpoint = endpoint + "/" + str(lexis_id)
         try:
             r = requests.get(self.base_url + endpoint, timeout=default_timeout)
             r.raise_for_status()
@@ -41,13 +34,12 @@ class HeappeClient:
         if r.status_code == 200:
             self.logger.doLog("System status fetched")
             return r.json()
-        else:
-            self.logger.doLog("System status failed")
-            return False
+        self.logger.doLog("System status failed")
+        return False
 
-    def get_available(self, id):
+    def get_available(self, lexis_id):
         self.logger.doLog("Credit status of the account with the provided id")
-        endpoint = "/account/available" + "/" + str(id)
+        endpoint = "/account/available" + "/" + str(lexis_id)
         try:
             r = requests.get(self.base_url + endpoint, timeout=default_timeout)
             r.raise_for_status()
@@ -66,6 +58,5 @@ class HeappeClient:
         if r.status_code == 200:
             self.logger.doLog("Available credits fetched")
             return r.json()
-        else:
-            self.logger.doLog("Get available credits failed failed")
-            return False
+        self.logger.doLog("Get available credits failed failed")
+        return False

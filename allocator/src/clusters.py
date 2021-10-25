@@ -1,12 +1,9 @@
 # libraries and modules
-import json
-import requests
-import lxmlog
 import datetime
 import uuid
-import re
 import shelve
 import math
+import requests
 from HeappeClient import HeappeClient
 from OpenStackClient import OpenStackClient, compare_image_names
 
@@ -14,7 +11,7 @@ from OpenStackClient import OpenStackClient, compare_image_names
 # (supercomputing centers)
 
 
-class Clusters(object):
+class Clusters():
     # hasing of the input object to speedup its search on a dictionary
     __hash__ = object.__hash__
 
@@ -25,7 +22,7 @@ class Clusters(object):
         self.job_list_file = (
             "../dbs/" + lxc.lxm_conf["lxm_db2"] + "_persistent_job_list"
         )
-        self.default_transfer_speeds = dict()
+        self.default_transfer_speeds = {}
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
         self.backend_URL = lxc.lxm_conf["backend_URL"]
@@ -85,7 +82,7 @@ class Clusters(object):
     def new_job_req(self):
         uid = str(uuid.uuid4())
         with shelve.open(self.job_list_file, writeback=True) as job_list:
-            job_list[uid] = dict()
+            job_list[uid] = {}
             job_list[uid]["status"] = "ongoing"
             job_list[uid]["msg"] = ""
         return uid
@@ -170,10 +167,10 @@ class Clusters(object):
                 )
             dif = 999999999999999
             perf = 0
-            for item in self.default_transfer_speeds.keys():
-                if dif > abs(float(item) - sizeXfile):
-                    perf = float(self.default_transfer_speeds[item])
-                    dif = abs(float(item) - sizeXfile)
+            for key in self.default_transfer_speeds:
+                if dif > abs(float(key) - sizeXfile):
+                    perf = float(self.default_transfer_speeds[key])
+                    dif = abs(float(key) - sizeXfile)
         else:
             perf = resp[0]["message"][0]["performance"]
         return perf
@@ -218,9 +215,9 @@ class Clusters(object):
     def HPC_weighted_criteria_mean(
         self, job_args, center, heappe_endpoint, hpc_project, banned_sites, token
     ):
-        if self.check_refresh_token(token) == False:
+        if self.check_refresh_token(token) is False:
             return False
-        if center.get_heappe(heappe_endpoint, token) == False:
+        if center.get_heappe(heappe_endpoint, token) is False:
             return False
         total_max_time, origins = self.data_transf(
             job_args["storage_inputs"], center.name
@@ -234,7 +231,7 @@ class Clusters(object):
             av_queues = center.check_template_queues(cluster, job_args["taskName"])
             if len(av_queues) == 0:
                 continue
-            if self.check_refresh_token(token) == False:
+            if self.check_refresh_token(token) is False:
                 continue
             resubmit = False
             if job_args["original_request_id"] != "":
@@ -246,14 +243,14 @@ class Clusters(object):
                 continue
             if len(queue_status) == 0:
                 continue
-            res = dict()
-            res["dest"] = dict()
+            res = {}
+            res["dest"] = {}
             res["dest"]["location"] = center.name
             res["dest"]["cluster_id"] = center.get_av_cluster_id(cluster)
             res["dest"]["HEAppE_URL"] = heappe_endpoint
             res["dest"]["project"] = hpc_project
             res["dest"]["tasks"] = []
-            task = dict()
+            task = {}
             task["name"] = job_args["taskName"]
             if res["dest"]["cluster_id"] < 0:
                 continue
@@ -321,14 +318,14 @@ class Clusters(object):
         cloud_project,
         token,
     ):
-        res = dict()
-        res["dest"] = dict()
+        res = {}
+        res["dest"] = {}
         res["dest"]["location"] = center.name
         res["dest"]["NetworkIP"] = openstack_netip
         res["dest"]["OpenStack_URL"] = openstack_endpoint
         res["dest"]["HEAppE_URL"] = heappe_endpoint
         res["dest"]["project"] = cloud_project
-        if self.check_refresh_token(token) == False:
+        if self.check_refresh_token(token) is False:
             return False
         info_dict = center.auth_and_update(
             openstack_endpoint,
@@ -441,7 +438,7 @@ class Clusters(object):
         if not origins:
             return False
         elif len(job_args["storage_inputs"]) != 0:
-            time_param, not_used = self.data_transf(
+            time_param, _ = self.data_transf(
                 job_args["storage_inputs"], center.name, default=True
             )
             data_tranf_score = math.exp(-(total_max_time / (2 * time_param)))
@@ -471,7 +468,7 @@ class Clusters(object):
         return True
 
     def backend_av_resources(self, projectID, token):
-        if self.check_refresh_token(token) == False:
+        if self.check_refresh_token(token) is False:
             return False
         headers = {
             "accept": "application/json",
@@ -526,7 +523,7 @@ class Clusters(object):
                 and args["original_request_id"] not in job_list.keys()
             ):
                 self.logger.doLog(
-                    "WAR: original_request_id %s is provided but does not exist in the DB. Ignoring the failover functionality."
+                    "WAR: original_request_id %s is provided but does not exist in the DB.Ignoring the failover functionality."
                     % (args["original_request_id"])
                 )
                 args["original_request_id"] = ""
@@ -590,7 +587,7 @@ class Clusters(object):
                 self.api.write_evaluation(
                     args["job_id"], dict(job_list[args["job_id"]])
                 )
-                == False
+                is False
             ):
                 job_list[args["job_id"]]["msg"] = (
                     job_list[args["job_id"]]["msg"]

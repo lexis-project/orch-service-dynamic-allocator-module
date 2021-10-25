@@ -6,7 +6,7 @@ class LXMconfig:
         self.idb_c1 = None
         self.idb_c2 = None
         self.idb_c3 = None
-        self.lxm_conf = dict()
+        self.lxm_conf = {}
         self.program_name = "lx_allocator"
         self.lxm_conf["header_request_id"] = 0
         self.lxm_conf["header_forwarded_for"] = 1

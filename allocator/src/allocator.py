@@ -1,14 +1,10 @@
 # import modules and libraries
-import time
-import json
-import time
-from datetime import timedelta
+import os
 from flask import Flask as flask
 from api import APIRest as apirest
 from influxdb import InfluxDBClient
 from config import LXMconfig as lxconf
 from lxmlog import LXMlog as lxmlog
-import os
 
 # global variables
 api_script_path = os.path.dirname(os.path.realpath(__file__))

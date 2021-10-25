@@ -39,7 +39,7 @@ def main():
     # check if the cleanup has been enabled
     if lxc.lxm_conf["cleanup_maintenance"] == 1:
         # call the external executable script to get the list of entries
-        ret = cli.run(["./get_maintenance.sh", "ALL"], stdout=False)
+        ret = cli.run(["./get_maintenance.sh", "ALL"], stdout=False, check=True)
         with open("../dbs/lxm_cleanup_date.txt") as fp:
             dump = fp.readlines()
         dump = [entry.strip() for entry in dump]
@@ -57,7 +57,7 @@ def main():
                     'DELETE FROM "systemMaintenance" WHERE time = %d' % (int(fields[0]))
                 )
         # eventually remove the temporary file
-        ret = cli.run(["rm", "../dbs/lxm_cleanup_date.txt"], stdout=False)
+        ret = cli.run(["rm", "../dbs/lxm_cleanup_date.txt"], stdout=False, check=True)
 
 
 # running the web backend server

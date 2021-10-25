@@ -260,7 +260,7 @@ class APIRest:
                 if self.db_active3:
                     # call the external executable script to get the list of
                     # entries
-                    ret = cli.run(["./get_maintenance.sh", cluster], stdout=False)
+                    ret = cli.run(["./get_maintenance.sh", cluster], stdout=False, check=True)
                     self.logger.doLog(
                         "running external script for querying the database [ok]"
                     )
@@ -282,7 +282,7 @@ class APIRest:
                         jptv.append(jpt)
                     # eventually remove the temporary file
                     ret = cli.run(
-                        ["rm", "../dbs/lxm_maintenance_date.txt"], stdout=False
+                        ["rm", "../dbs/lxm_maintenance_date.txt"], stdout=False, check=True
                     )
                     jmsg = {"message": jptv}
                     jmsg["status"] = "ok"
@@ -322,7 +322,7 @@ class APIRest:
             if self.db_active1:
                 # call the external executable script to get the list of
                 # entries
-                ret = cli.run(["./get_speed_perf.sh", src, dst], stdout=False)
+                ret = cli.run(["./get_speed_perf.sh", src, dst], stdout=False, check=True)
                 self.logger.doLog(
                     "running external script for querying the database [ok]"
                 )
@@ -356,7 +356,7 @@ class APIRest:
                         jpt["performance"] = float(value[1])
                         jptv.append(jpt)
                 # eventually remove the temporary file
-                ret = cli.run(["rm", "../dbs/lxm_speed_perf.txt"], stdout=False)
+                ret = cli.run(["rm", "../dbs/lxm_speed_perf.txt"], stdout=False, check=True)
                 jmsg = {"message": jptv}
                 jmsg["status"] = "ok"
                 state = 200
@@ -500,8 +500,7 @@ class APIRest:
     def check_cluster_name(self, id_resource):
         if id_resource in self.platform.clusters_list:
             return True
-        else:
-            return False
+        return False
 
     # checks if the passed dates are in a valid format
     def check_datetime_format(dt_str):
@@ -913,7 +912,8 @@ class APIRest:
                         "-database",
                         self.db_name_1,
                         target,
-                    ]
+                    ],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
@@ -946,7 +946,8 @@ class APIRest:
                         "-database",
                         self.db_name_2,
                         target,
-                    ]
+                    ],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
@@ -979,7 +980,8 @@ class APIRest:
                         "-database",
                         self.db_name_3,
                         target,
-                    ]
+                    ],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
@@ -1033,7 +1035,8 @@ class APIRest:
                 target = db_dump_path + "/_" + self.db_name_1 + "_dump"
                 self.idb_c1.drop_database(self.db_name_1)
                 ret = cli.run(
-                    ["influxd", "restore", "-db", self.db_name_1, "-portable", target]
+                    ["influxd", "restore", "-db", self.db_name_1, "-portable", target],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
@@ -1060,7 +1063,8 @@ class APIRest:
                 target = db_dump_path + "/_" + self.db_name_2 + "_dump"
                 self.idb_c2.drop_database(self.db_name_2)
                 ret = cli.run(
-                    ["influxd", "restore", "-db", self.db_name_2, "-portable", target]
+                    ["influxd", "restore", "-db", self.db_name_2, "-portable", target],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
@@ -1085,7 +1089,8 @@ class APIRest:
                 target = db_dump_path + "/_" + self.db_name_3 + "_dump"
                 self.idb_c3.drop_database(self.db_name_3)
                 ret = cli.run(
-                    ["influxd", "restore", "-db", self.db_name_3, "-portable", target]
+                    ["influxd", "restore", "-db", self.db_name_3, "-portable", target],
+                    check=True
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
@@ -1407,8 +1412,8 @@ class APIRest:
                 "Authorization", type=str, required=True, location="headers"
             )
             args = parser.parse_args()
-            jmsg = dict()
-            jpt = dict()
+            jmsg = {}
+            jpt = {}
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
