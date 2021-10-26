@@ -479,9 +479,8 @@ class Clusters():
         if r.status_code == 200:
             ret = (x for x in r.json() if x["AssociatedLEXISProject"] == projectID)
             return ret
-        else:
-            self.logger.doLog("Available resource for project request failed ")
-            return False
+        self.logger.doLog("Available resource for project request failed ")
+        return False
 
     def get_banned_sites(self, original_request_id):
         ret_cloud = []

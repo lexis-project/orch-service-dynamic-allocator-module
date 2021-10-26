@@ -1,6 +1,6 @@
 import json
-import requests
 import re
+import requests
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
@@ -30,6 +30,11 @@ class OpenStackClient:
         self.session = None
         self.logger = logger
         self.info_dict = {}
+        self.compute_limits_dict = None
+        self.cinder_limits_dict = None
+        self.flavours = None
+        self.images = None
+        self.quotas = None
 
     def set_center(self, name):
         self.name = name

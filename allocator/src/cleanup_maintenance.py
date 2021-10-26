@@ -1,9 +1,10 @@
 # inport libraries and modules
-from influxdb import InfluxDBClient
-from config import LXMconfig as lxconf
 import datetime
 import os
 import subprocess as cli
+from influxdb import InfluxDBClient
+from config import LXMconfig as lxconf
+
 
 
 # constants
@@ -34,8 +35,7 @@ def main():
     if not db_exist:
         return 0
     # otherwise switch to the database
-    else:
-        idbc.switch_database(lxc.lxm_conf["lxm_db3"])
+    idbc.switch_database(lxc.lxm_conf["lxm_db3"])
     # check if the cleanup has been enabled
     if lxc.lxm_conf["cleanup_maintenance"] == 1:
         # call the external executable script to get the list of entries

@@ -249,7 +249,8 @@ class APIRest:
                     # of the BLU
                     dates_iso = []
                     for item in tmp:
-                        dates_iso.append((item[0].isoformat(), item[1].isoformat()))
+                        dates_iso.append(
+                            (item[0].isoformat(), item[1].isoformat()))
                     jmsg["message"] = dates_iso
                     jmsg["status"] = "ok"
                     state = 200
@@ -260,7 +261,8 @@ class APIRest:
                 if self.db_active3:
                     # call the external executable script to get the list of
                     # entries
-                    ret = cli.run(["./get_maintenance.sh", cluster], stdout=False, check=True)
+                    ret = cli.run(["./get_maintenance.sh", cluster],
+                                  stdout=False, check=True)
                     self.logger.doLog(
                         "running external script for querying the database [ok]"
                     )
@@ -282,24 +284,22 @@ class APIRest:
                         jptv.append(jpt)
                     # eventually remove the temporary file
                     ret = cli.run(
-                        ["rm", "../dbs/lxm_maintenance_date.txt"], stdout=False, check=True
-                    )
+                        ["rm", "../dbs/lxm_maintenance_date.txt"],
+                        stdout=False, check=True)
                     jmsg = {"message": jptv}
                     jmsg["status"] = "ok"
                     state = 200
                     self.logger.doLog(
-                        "served '/maintenance/dates/' (cluster: %s) [ok]" % (cluster)
-                    )
+                        "served '/maintenance/dates/' (cluster: %s) [ok]" %
+                        (cluster))
                 else:
                     jmsg = {
-                        "message": "the maintenance database is not available -- request failed"
-                    }
+                        "message": "the maintenance database is not available -- request failed"}
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
-                        "served '/maintenance/dates/' (cluster: %s) [err: maintenance database is not available]"
-                        % (cluster)
-                    )
+                        "served '/maintenance/dates/' (cluster: %s) [err: maintenance database is not available]" %
+                        (cluster))
         return (jmsg, state)
 
     # get the speed performance when transferring files from a source cluster to a destination cluster,
@@ -322,7 +322,8 @@ class APIRest:
             if self.db_active1:
                 # call the external executable script to get the list of
                 # entries
-                ret = cli.run(["./get_speed_perf.sh", src, dst], stdout=False, check=True)
+                ret = cli.run(["./get_speed_perf.sh", src, dst],
+                              stdout=False, check=True)
                 self.logger.doLog(
                     "running external script for querying the database [ok]"
                 )
@@ -356,33 +357,32 @@ class APIRest:
                         jpt["performance"] = float(value[1])
                         jptv.append(jpt)
                 # eventually remove the temporary file
-                ret = cli.run(["rm", "../dbs/lxm_speed_perf.txt"], stdout=False, check=True)
+                ret = cli.run(["rm", "../dbs/lxm_speed_perf.txt"],
+                              stdout=False, check=True)
                 jmsg = {"message": jptv}
                 jmsg["status"] = "ok"
                 state = 200
                 if float(size) <= 0:
                     self.logger.doLog(
-                        "served '/list/netperf' (src: %s, dst: %s) [ok]" % (src, dst)
-                    )
+                        "served '/list/netperf' (src: %s, dst: %s) [ok]" %
+                        (src, dst))
                 else:
                     self.logger.doLog(
-                        "served '/load/netperf' (src: %s, dst: %s, size: %s) [ok]"
-                        % (src, dst, size)
-                    )
+                        "served '/load/netperf' (src: %s, dst: %s, size: %s) [ok]" %
+                        (src, dst, size))
             else:
-                jmsg = {"message": "the netperf is not available -- request failed"}
+                jmsg = {
+                    "message": "the netperf is not available -- request failed"}
                 jmsg["status"] = "err"
                 state = 400
                 if float(size) <= 0:
                     self.logger.doLog(
-                        "served '/list/netperf' (src: %s, dst: %s) [err: netperf database is not available]"
-                        % (src, dst)
-                    )
+                        "served '/list/netperf' (src: %s, dst: %s) [err: netperf database is not available]" %
+                        (src, dst))
                 else:
                     self.logger.doLog(
-                        "served '/load/netperf' (src: %s, dst: %s, size: %s) [err: netperf database is not available]"
-                        % (src, dst, size)
-                    )
+                        "served '/load/netperf' (src: %s, dst: %s, size: %s) [err: netperf database is not available]" %
+                        (src, dst, size))
         else:
             jmsg = {"message": "one or both of the centers do not exist"}
             jmsg["status"] = "err"
@@ -404,18 +404,16 @@ class APIRest:
                     found = True
                     timestamp = int(item["timestamp"])
                     delete_ret = self.idb_c1.query(
-                        'DELETE FROM "networkEvaluation" WHERE time = %d' % (timestamp)
-                    )
+                        'DELETE FROM "networkEvaluation" WHERE time = %d' %
+                        (timestamp))
             if found:
                 jmsg["message"] = (
-                    "netperf item removed for dest center '%s', source center '%s' and size '%s'"
-                    % (str(dst), str(src), str(size))
-                )
+                    "netperf item removed for dest center '%s', source center '%s' and size '%s'" %
+                    (str(dst), str(src), str(size)))
             else:
                 jmsg["message"] = (
-                    "no previous netperf items for dest center '%s', source center '%s' and size '%s'"
-                    % (str(dst), str(src), str(size))
-                )
+                    "no previous netperf items for dest center '%s', source center '%s' and size '%s'" %
+                    (str(dst), str(src), str(size)))
             self.logger.doLog("served '/netperf/remove/' [ok]")
             jmsg["status"] = "ok"
         else:
@@ -472,9 +470,8 @@ class APIRest:
                 )
         else:
             self.logger.doLog(
-                "ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]"
-                % (self.db_name_2)
-            )
+                "ended evaluation '/evaluate/machines' [err: database '%s' is not active or has been deleted]" %
+                (self.db_name_2))
             return False
         return True
 
@@ -518,7 +515,9 @@ class APIRest:
         # manage server response after requests are served
         @self.service.after_request
         def after_request(response):
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:8081")
+            response.headers.add(
+                "Access-Control-Allow-Origin",
+                "http://localhost:8081")
             response.headers.add(
                 "Access-Control-Allow-Headers", "Content-Type,Authorization"
             )
@@ -546,9 +545,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/service/shutdown' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/service/shutdown' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             self.shutdown_server()
             self.logger.doLog("quietly shutdowning the service ...")
@@ -670,7 +668,8 @@ class APIRest:
 
         # insert a json stream-element in the database:
         # the peformance of the networking measured on a given cluster site
-        @self.service.route("/store/netperf/<string:measure>", methods=["POST"])
+        @self.service.route("/store/netperf/<string:measure>",
+                            methods=["POST"])
         def store_netperf(measure):
             # get  the new measure from the request as input arguments
             parser = reqparse.RequestParser()
@@ -684,9 +683,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/store/netperf/<string:measure>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/store/netperf/<string:measure>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             state = 200
             jmsg = {}
@@ -704,17 +702,15 @@ class APIRest:
             # if the cluster is present in the checked platforms it goes to add
             # the stream in the influx database
             if (center_exist_s) and (center_exist_d) and (self.db_active1):
-                temp = self.delete_speed_perf(args["src"], args["dst"], args["size"])
+                temp = self.delete_speed_perf(
+                    args["src"], args["dst"], args["size"])
                 if temp[1] != 200:
                     self.logger.doLog(
-                        "error when deleting old entry '/store/netperf/' (%s -> %s) [err]"
-                        % (args["src"], args["dst"])
-                    )
+                        "error when deleting old entry '/store/netperf/' (%s -> %s) [err]" %
+                        (args["src"], args["dst"]))
                     return (jsonify(temp[0]), temp[1])
                 jmsg["message"] = "performance of the network for '%s -> %s' added" % (
-                    args["src"],
-                    args["dst"],
-                )
+                    args["src"], args["dst"], )
                 jmsg["status"] = ""
                 measure = args["size"] + "_" + measure
                 db_body = [
@@ -739,9 +735,8 @@ class APIRest:
                 else:
                     jmsg["status"] = "err"
                     self.logger.doLog(
-                        "served '/store/netperf/' (%s -> %s) [err: operation failed]"
-                        % (args["src"], args["dst"])
-                    )
+                        "served '/store/netperf/' (%s -> %s) [err: operation failed]" %
+                        (args["src"], args["dst"]))
                     state = 400
             else:
                 # manage the error
@@ -751,22 +746,19 @@ class APIRest:
                     ] = "target stream database is not acitve or has been deleted"
                     jmsg["status"] = "war"
                     self.logger.doLog(
-                        "served '/store/netperf/' (%s -> %s) [war: target stream-db is not active or has been deleted]"
-                        % (args["src"], args["dst"])
-                    )
+                        "served '/store/netperf/' (%s -> %s) [war: target stream-db is not active or has been deleted]" %
+                        (args["src"], args["dst"]))
                     self.logger.doLog(
                         "target stream database is not acitve or has been deleted"
                     )
                 else:
                     jmsg["message"] = (
-                        "source cluster '%s' and/or destination cluster '%s' do not exist"
-                        % (args["src"], args["dst"])
-                    )
+                        "source cluster '%s' and/or destination cluster '%s' do not exist" %
+                        (args["src"], args["dst"]))
                     jmsg["status"] = "err"
                     self.logger.doLog(
-                        "served '/store/netperf/' (%s -> %s) [err: cluster(s) not exist]"
-                        % (args["src"], args["dst"])
-                    )
+                        "served '/store/netperf/' (%s -> %s) [err: cluster(s) not exist]" %
+                        (args["src"], args["dst"]))
                     state = 400
             return (jsonify(jmsg), state)
 
@@ -786,9 +778,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/load/netperf' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/load/netperf' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             ret = self.get_speed_perf(args["src"], args["dst"], args["size"])
             return (jsonify(ret[0]), ret[1])
@@ -806,11 +797,11 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/delete/netperf' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/delete/netperf' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            ret = self.delete_speed_perf(args["src"], args["dst"], args["size"])
+            ret = self.delete_speed_perf(
+                args["src"], args["dst"], args["size"])
             return (jsonify(ret[0]), ret[1])
 
         # listing all the pairs size_per_file and transfer_speed for a given
@@ -827,9 +818,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/list/netperf' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/list/netperf' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             ret = self.get_speed_perf(args["src"], args["dst"], "0")
             return (jsonify(ret[0]), ret[1])
@@ -846,39 +836,35 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/removedb/<string:database>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/removedb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             state = 200
             jmsg = {}
             if database == self.db_name_1:
                 self.idb_c1.drop_database(self.db_name_1)
                 jmsg["message"] = "database '%s' has been removed correctly" % (
-                    database
-                )
+                    database)
                 jmsg["status"] = "ok"
                 self.logger.doLog("served '/removedb/%s' [ok]" % (database))
             elif database == self.db_name_2:
                 self.idb_c2.drop_database(self.db_name_2)
                 jmsg["message"] = "database '%s' has been removed correctly" % (
-                    database
-                )
+                    database)
                 jmsg["status"] = "ok"
                 self.logger.doLog("served '/removedb/%s' [ok]" % (database))
             elif database == self.db_name_3:
                 self.idb_c3.drop_database(self.db_name_3)
                 jmsg["message"] = "database '%s' has been removed correctly" % (
-                    database
-                )
+                    database)
                 jmsg["status"] = "ok"
                 self.logger.doLog("served '/removedb/%s' [ok]" % (database))
             else:
                 jmsg["message"] = "database '%s' does not exist" % (database)
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/removedb/%s' [err: database does not exist]" % (database)
-                )
+                    "served '/removedb/%s' [err: database does not exist]" %
+                    (database))
                 state = 400
             return (jsonify(jmsg), state)
 
@@ -894,9 +880,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/dumpdb/<string:database>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/dumpdb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             state = 200
             jmsg = {}
@@ -917,8 +902,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/dumpdb/%s' [ok: exit code is %d]"
@@ -926,8 +910,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -951,8 +934,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/dumpdb/%s' [ok: exit code is %d]"
@@ -960,8 +942,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -985,8 +966,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/dumpdb/%s' [ok: exit code is %d]"
@@ -994,8 +974,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly dumped" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -1006,8 +985,8 @@ class APIRest:
                 jmsg["message"] = "database %s does not exist" % (database)
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/removedb/%s' [err: database does not exist]" % (database)
-                )
+                    "served '/removedb/%s' [err: database does not exist]" %
+                    (database))
                 state = 400
             return (jsonify(jmsg), state)
 
@@ -1023,9 +1002,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/restoredb/<string:database>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/restoredb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             state = 200
             jmsg = {}
@@ -1040,8 +1018,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/restoredb/%s' [ok: exit code is %d]"
@@ -1049,8 +1026,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -1068,8 +1044,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/restoredb/%s' [ok: exit code is %d]"
@@ -1077,8 +1052,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -1094,8 +1068,7 @@ class APIRest:
                 )
                 if ret.returncode == 0:
                     jmsg["message"] = "database %s has been correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "ok"
                     self.logger.doLog(
                         "served '/restoredb/%s' [ok: exit code is %d]"
@@ -1103,8 +1076,7 @@ class APIRest:
                     )
                 else:
                     jmsg["message"] = "database %s has not correctly restored" % (
-                        database
-                    )
+                        database)
                     jmsg["status"] = "err"
                     state = 400
                     self.logger.doLog(
@@ -1115,8 +1087,8 @@ class APIRest:
                 jmsg["message"] = "database %s does not exist" % (database)
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/removedb/%s' [err: database does not exist]" % (database)
-                )
+                    "served '/removedb/%s' [err: database does not exist]" %
+                    (database))
                 state = 400
             return (jsonify(jmsg), state)
 
@@ -1127,7 +1099,8 @@ class APIRest:
         # get the maintenance dates for a given machine:
         # the machine identifier is <center_name>_<cluster_name>
 
-        @self.service.route("/maintenance/dates/<string:cluster>", methods=["GET"])
+        @self.service.route("/maintenance/dates/<string:cluster>",
+                            methods=["GET"])
         def get_programmed_maintenance_api(cluster):
             parser = reqparse.RequestParser()
             parser.add_argument(
@@ -1137,9 +1110,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/maintenance/dates/<string:cluster>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/maintenance/dates/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             ret = self.get_programmed_maintenance(cluster)
             return (jsonify(ret[0]), ret[1])
@@ -1154,9 +1126,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/maintenance/clusters' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/maintenance/clusters' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             ret = {"message": "no cluster attached!", "status": "war"}
             if len(self.platform.clusters_list) != 0:
@@ -1187,9 +1158,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/maintenance/<string:cluster>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/maintenance/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             dates = args["date"]
             jmsg = {}
@@ -1200,8 +1170,8 @@ class APIRest:
                 jmsg["message"] = "wrong dates format. %Y%m%d(%H:%M) is needed"
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/maintenance/%s' [err: wrong date format]" % (cluster)
-                )
+                    "served '/maintenance/%s' [err: wrong date format]" %
+                    (cluster))
                 state = 400
                 return (jsonify(jmsg), state)
             if start_date > end_date:
@@ -1221,8 +1191,8 @@ class APIRest:
                 jmsg["message"] = "cluster '%s' does not exist" % (cluster)
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/maintenance/%s' [err: cluster does not exist]" % (cluster)
-                )
+                    "served '/maintenance/%s' [err: cluster does not exist]" %
+                    (cluster))
                 state = 400
                 return (jsonify(jmsg), state)
             else:
@@ -1245,28 +1215,26 @@ class APIRest:
                     if ret:
                         jmsg["status"] = "ok"
                         self.logger.doLog(
-                            "served '/maintenance/%s' (start_maintenance: %s / end_maintenance: %s) [ok]"
-                            % (cluster, start_date, end_date)
-                        )
+                            "served '/maintenance/%s' (start_maintenance: %s / end_maintenance: %s) [ok]" %
+                            (cluster, start_date, end_date))
                     else:
                         jmsg["status"] = "err"
                         self.logger.doLog(
-                            "served '/maintenance/%s' (start_maintenance: %s / end_maintenance: %s) [failed]"
-                            % (cluster, start_date, end_date)
-                        )
+                            "served '/maintenance/%s' (start_maintenance: %s / end_maintenance: %s) [failed]" %
+                            (cluster, start_date, end_date))
                         state = 400
                 else:
                     jmsg["message"] = "Maintenance DB not found"
                     jmsg["status"] = "err"
                     self.logger.doLog(
-                        "served '/maintenance/%s' [err: maintenance DB does not exist]"
-                        % (cluster)
-                    )
+                        "served '/maintenance/%s' [err: maintenance DB does not exist]" %
+                        (cluster))
                     state = 400
                 return (jsonify(jmsg), state)
 
         # remove the maintenance for a given machine --- TBD
-        @self.service.route("/maintenance/remove/<string:cluster>", methods=["DELETE"])
+        @self.service.route("/maintenance/remove/<string:cluster>",
+                            methods=["DELETE"])
         def delete_programmed_maintenance(cluster):
             state = 200
             parser = reqparse.RequestParser()
@@ -1278,9 +1246,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/maintenance/remove/<string:cluster>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/maintenance/remove/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             timestamp = int(args["timestamp"])
             jmsg = {}
@@ -1290,12 +1257,13 @@ class APIRest:
             # check if the database is online and the cluster name exists
             if (self.db_active3) and (validFlag):
                 ret = self.idb_c3.query(
-                    'DELETE FROM "systemMaintenance" WHERE time = %d' % (timestamp)
-                )
+                    'DELETE FROM "systemMaintenance" WHERE time = %d' %
+                    (timestamp))
                 jmsg["message"] = "maintenance date removed for cluster '%s'" % (
-                    str(cluster)
-                )
-                self.logger.doLog("served '/maintenance/remove/%s' [ok]" % (cluster))
+                    str(cluster))
+                self.logger.doLog(
+                    "served '/maintenance/remove/%s' [ok]" %
+                    (cluster))
                 jmsg["status"] = "ok"
             else:
                 if validFlag:
@@ -1306,16 +1274,14 @@ class APIRest:
                     )
                     jmsg["status"] = "war"
                     self.logger.doLog(
-                        "served '/maintenance/remove/%s' [war: cluster is not valid]"
-                        % (cluster)
-                    )
+                        "served '/maintenance/remove/%s' [war: cluster is not valid]" %
+                        (cluster))
                 else:
                     jmsg["message"] = "the database is not available"
                     jmsg["status"] = "err"
                     self.logger.doLog(
-                        "served '/maintenance/remove/%s' [err: database is not available]"
-                        % (cluster)
-                    )
+                        "served '/maintenance/remove/%s' [err: database is not available]" %
+                        (cluster))
             return (jsonify(jmsg), state)
 
         # evaluate the available machines
@@ -1332,9 +1298,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             token = self.exchange_token(args["Authorization"].split()[1])
             if token["access_token"] is None or token["refresh_token"] is None:
@@ -1394,9 +1359,8 @@ class APIRest:
                 )
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/evaluate/machines' [err: database '%s' is not active or has been deleted]"
-                    % (self.db_name_2)
-                )
+                    "served '/evaluate/machines' [err: database '%s' is not active or has been deleted]" %
+                    (self.db_name_2))
                 state = 400
             return (jsonify(jmsg), state)
 
@@ -1417,9 +1381,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/job/rank/<int:job_id>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/job/rank/<int:job_id>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             if not self.db_active2:
                 jmsg["message"] = "error using the machineEvaluation database"
@@ -1466,9 +1429,8 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             if not self.platform.job_id_exists(job_id):
                 jmsg["message"] = []
@@ -1476,9 +1438,8 @@ class APIRest:
                     "status"
                 ] = "err. job ID is not valid -- call evaluation endpoint first"
                 self.logger.doLog(
-                    "served '/get/machines/%s' [err: %s is not a valid ID for a job]"
-                    % (job_id, job_id)
-                )
+                    "served '/get/machines/%s' [err: %s is not a valid ID for a job]" %
+                    (job_id, job_id))
                 state = 400
             else:
                 if self.platform.get_job_info(job_id)["status"] != "done":
@@ -1498,7 +1459,9 @@ class APIRest:
                     else:
                         jmsg["message"] = best_machines
                         jmsg["status"] = "ok"
-                    self.logger.doLog("served '/get/machines/%s' [ok]" % (job_id))
+                    self.logger.doLog(
+                        "served '/get/machines/%s' [ok]" %
+                        (job_id))
             return (jsonify(jmsg), state)
 
         # remove the request for machine evaluation (by job  ID)
@@ -1517,21 +1480,20 @@ class APIRest:
             auth_res = self.auth(args["Authorization"])
             if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
                 self.logger.doLog(
-                    "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]"
-                    % (auth_res["status"], auth_res["jmsg"])
-                )
+                    "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]" %
+                    (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             if not self.platform.job_id_exists(job_id):
                 jmsg["message"] = "job ID is not valid"
                 jmsg["status"] = "err"
                 self.logger.doLog(
-                    "served '/evaluate/machines/remove/%d [err: %d is not a valid Id for a job]'"
-                    % (job_id, job_id)
-                )
+                    "served '/evaluate/machines/remove/%d [err: %d is not a valid Id for a job]'" %
+                    (job_id, job_id))
                 state = 400
             else:
                 self.platform.remove_job(job_id)
-                jmsg["message"] = "job (ID = %d) correctly removed" % (int(job_id))
+                jmsg["message"] = "job (ID = %d) correctly removed" % (
+                    int(job_id))
                 jmsg["status"] = "ok"
                 self.logger.doLog(
                     "served '/evaluate/machines/remove/%d [ok]'" % (job_id)

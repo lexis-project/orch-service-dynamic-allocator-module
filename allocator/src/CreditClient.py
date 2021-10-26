@@ -1,5 +1,4 @@
 import requests
-from lxmlog import LXMlog as lxmlog
 
 default_timeout = 6
 
