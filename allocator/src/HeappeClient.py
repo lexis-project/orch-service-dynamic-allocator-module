@@ -13,14 +13,12 @@ def datetime_to_json(o):
 
 
 class HeappeClient:
-    def __init__(self, url, logger, center=''):
+    def __init__(self, url, logger, center=""):
         self.logger = logger
         self.base_url = url
         self.info_dict = self.init_info(self.base_url)
         if not self.info_dict:
-            self.logger.doLog(
-                    "ERROR: invalid initialization from %s" % (self.base_url)
-                )
+            self.logger.doLog("ERROR: invalid initialization from %s" % (self.base_url))
         self.project_info_dict = None
         self.session_code = None
         self.name = center

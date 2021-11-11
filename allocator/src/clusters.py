@@ -11,7 +11,7 @@ from OpenStackClient import OpenStackClient, compare_image_names
 # (supercomputing centers)
 
 
-class Clusters():
+class Clusters:
     # hasing of the input object to speedup its search on a dictionary
     __hash__ = object.__hash__
 

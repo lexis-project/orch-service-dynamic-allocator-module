@@ -6,7 +6,6 @@ from influxdb import InfluxDBClient
 from config import LXMconfig as lxconf
 
 
-
 # constants
 api_script_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(api_script_path, "..", "config", "lxm.conf")

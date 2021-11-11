@@ -207,7 +207,7 @@ def main():
         print(" (err): error while starting the backend:", end="")
         print(" ", str(exc))
         return 1
-    
+
     return 0
 
 

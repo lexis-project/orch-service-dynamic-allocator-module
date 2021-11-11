@@ -86,7 +86,7 @@ class APIRest:
             if r.status_code == 200:
                 msg = r.json()
                 if "attributes" in msg.keys():
-                    if role = "lex_adm":
+                    if role == "lex_adm":
                         att_list = self.lex_adm_att
                         value = ["*"]
                     else:
