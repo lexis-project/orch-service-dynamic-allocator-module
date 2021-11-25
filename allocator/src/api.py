@@ -48,26 +48,16 @@ class APIRest:
         self.KC_REALM = lxc.lxm_conf["KC_REALM"]
         self.KC_CLID = lxc.lxm_conf["KC_CLID"]
         self.KC_SECRET = lxc.lxm_conf["KC_SECRET"]
-        self.lex_adm_att = ["ORG_LIST", "ORG_READ", "ORG_WRITE",
-		    "IAM_LIST", "IAM_READ", "IAM_WRITE",
+        self.lex_adm_att = [
 		    "PRJ_LIST", "PRJ_READ", "PRJ_WRITE",
-		    "DAT_LIST", "DAT_READ", "DAT_WRITE", "DAT_PUBLISH"
         ]
-        self.wor_mgr_att = ["ORG_LIST", "ORG_READ", "DAT_LIST", 
-            "DAT_READ", "DAT_WRITE", "DAT_PUBLISH",
-            "PRJ_LIST", "PRJ_READ", "PRJ_WRITE"
+        self.wor_mgr_att = [
+            "PRJ_LIST", "PRJ_READ"
         ]
 
     # auth methods
     def check_role(self, token, role, prj = ""):
         ret = {"status": None, "jmsg": None}
-        token_list = token.split()
-        if token_list[0] != "Bearer":
-            ret["status"] = 400
-            ret["jmsg"] = "Invalid token"
-            return ret
-        else:
-            token = token_list[1]
         try:
             data = {'grant_type': 'urn:ietf:params:oauth:grant-type:uma-ticket',
                     'audience': self.KC_CLID}
@@ -95,7 +85,7 @@ class APIRest:
                     for att in att_list:
                         if att not in msg["attributes"] and att.lower() not in msg["attributes"]:
                             ret["status"] = 400
-                            ret["jmsg"] = "user not allowed, not a lexis admin"
+                            ret["jmsg"] = "user not allowed, not a " + role
                             return ret
                         elif att.lower() in msg["attributes"]:
                             att = att.lower()
@@ -106,7 +96,7 @@ class APIRest:
                                 break
                         if not check:
                             ret["status"] = 400
-                            ret["jmsg"] = "user not allowed, not a lexis admin"
+                            ret["jmsg"] = "user not allowed, not a " + role
                             return ret
                     ret["status"] = 200
                     ret["jmsg"] = "allowed"
@@ -635,7 +625,13 @@ class APIRest:
                     "served '/service/shutdown' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/service/shutdown' [auth err: -- status (%d), msg (%s)]" %
@@ -700,10 +696,6 @@ class APIRest:
             entry["method"] = "GET"
             entry["input"] = "--"
             jmsg["/maintenance/dates/<string:cluster>"] = entry
-            #entry = {}
-            #entry["method"] = "GET"
-            #entry["input"] = "no_points=<integer>, type={hpc, cloud}"
-            #jmsg["/job/rank/<INT:job_id>"] = entry
             entry = {}
             entry["method"] = "GET"
             entry["input"] = "--"
@@ -741,7 +733,6 @@ class APIRest:
             msg += "GET    :  /get/machines/<INT:job_id>                : number=<integer>, type={hpc, cloud}\n"
             msg += "DELETE :  /evaluate/machines/remove/<INT:job_id>    : --\n"
             msg += "GET    :  /service/shutdown                         : --\n"
-            #msg += "GET    :  /job/rank/<INT:job_id>                    : no_points=<integer> type={hpc, cloud}\n"
             msg += "GET    :  /dumpdb/<string:database>                 : --\n"
             msg += "GET    :  /restoredb/<string:database>              : --\n"
             self.logger.doLog("served '/help' [ok]")
@@ -779,14 +770,18 @@ class APIRest:
                     "served '/store/netperf/<string:measure>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/store/netperf/<string:measure>' [auth err: -- status (%d), msg (%s)]" %
                     (role_res["status"], role_res["jmsg"]))
                 return (jsonify(role_res["jmsg"]), role_res["status"])
-            state = 200
-            jmsg = {}
             center_exist_s = True
             center_exist_d = True
             if (
@@ -880,7 +875,13 @@ class APIRest:
                     "served '/load/netperf' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/load/netperf' [auth err: -- status (%d), msg (%s)]" %
@@ -905,7 +906,13 @@ class APIRest:
                     "served '/delete/netperf' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/delete/netperf' [auth err: -- status (%d), msg (%s)]" %
@@ -932,7 +939,13 @@ class APIRest:
                     "served '/list/netperf' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/list/netperf' [auth err: -- status (%d), msg (%s)]" %
@@ -956,7 +969,13 @@ class APIRest:
                     "served '/removedb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/removedb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
@@ -1006,7 +1025,13 @@ class APIRest:
                     "served '/dumpdb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/dumpdb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
@@ -1134,7 +1159,13 @@ class APIRest:
                     "served '/restoredb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/restoredb/<string:database>' [auth err: -- status (%d), msg (%s)]" %
@@ -1248,7 +1279,13 @@ class APIRest:
                     "served '/maintenance/dates/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/maintenance/dates/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
@@ -1270,7 +1307,13 @@ class APIRest:
                     "served '/maintenance/clusters' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/maintenance/clusters' [auth err: -- status (%d), msg (%s)]" %
@@ -1308,7 +1351,13 @@ class APIRest:
                     "served '/maintenance/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/maintenance/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
@@ -1402,7 +1451,13 @@ class APIRest:
                     "served '/maintenance/remove/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
-            role_res = self.check_role(args["Authorization"], "lex_adm")
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
+            role_res = self.check_role(token["access_token"], "lex_adm")
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/maintenance/remove/<string:cluster>' [auth err: -- status (%d), msg (%s)]" %
@@ -1462,13 +1517,10 @@ class APIRest:
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
             token = self.exchange_token(args["Authorization"].split()[1])
             if token["access_token"] is None or token["refresh_token"] is None:
-                jmsg["message"] = "error when exchanging tokens"
-                jmsg["status"] = "err"
                 self.logger.doLog(
                     "served '/evaluate/machines' [err: error when exchanging tokens ]"
                 )
-                state = 500
-                return (jsonify(jmsg), state)
+                return (jsonify("error when exchanging tokens"), 500)
             if (args["type"] != "hpc") and (args["type"] != "cloud"):
                 jmsg["message"] = "wrong input parameter(s)"
                 jmsg["status"] = "err"
@@ -1499,7 +1551,7 @@ class APIRest:
                 return jsonify(err.messages, 400)
             data_now_json_str = dumps(result)
             a_dict = loads(data_now_json_str)
-            role_res = self.check_role(args["Authorization"], "wor_mgr", prj = args['project'])
+            role_res = self.check_role(token["access_token"], "wor_mgr", prj = a_dict['project'])
             if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                 self.logger.doLog(
                     "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]" %
@@ -1529,59 +1581,6 @@ class APIRest:
                 state = 400
             return (jsonify(jmsg), state)
 
-        # retrieve the best 'number' machines where to run the job DEPRECATED?
-
-        #@self.service.route("/job/rank/<int:job_id>", methods=["GET"])
-        #def show_site_rank(job_id):
-        #    state = 200
-        #    parser = reqparse.RequestParser()
-        #    parser.add_argument("type", type=str)
-        #    parser.add_argument("no_points", type=int)
-        #    parser.add_argument(
-        #        "Authorization", type=str, required=True, location="headers"
-        #    )
-        #    args = parser.parse_args()
-        #    jmsg = {}
-        #    jpt = {}
-        #    auth_res = self.auth(args["Authorization"])
-        #    if auth_res["status"] != 200 or auth_res["jmsg"] == "not active":
-        #        self.logger.doLog(
-        #            "served '/job/rank/<int:job_id>' [auth err: -- status (%d), msg (%s)]" %
-        #            (auth_res["status"], auth_res["jmsg"]))
-        #        return (jsonify(auth_res["jmsg"]), auth_res["status"])
-        #    if not self.db_active2:
-        #        jmsg["message"] = "error using the machineEvaluation database"
-        #        jmsg["status"] = "err"
-        #        state = 400
-        #        return (jsonify(jmsg), state)
-        #    query = "SELECT * FROM machineEvaluation"
-        #    rs2 = self.idb_c2.query(query)
-        #    points = list(
-        #        rs2.get_points(
-        #            measurement="machineEvaluation",
-        #            tags={"job_id": str(job_id), "job_type": args["type"]},
-        #        )
-        #    )
-        #    barrier = args["no_points"]
-        #    if barrier > len(points):
-        #        barrier = len(points)
-        #    for i in range(0, barrier):
-        #        jpt[
-        #            i
-        #        ] = "time (%s): job_id (%s) with type '%s' got evaluation <%s>\n" % (
-        #            points[i]["time"],
-        #            points[i]["job_id"],
-        #            points[i]["job_type"],
-        #            points[i]["rank"],
-        #        )
-        #        i += 1
-        #    jmsg["rank"] = jpt
-        #    jmsg["message"] = "served '/get/rank/%d' [ok]" % (job_id)
-        #    jmsg["status"] = "ok"
-        #    return (jsonify(jmsg), state)
-
-        # retrieve the best 'number' machines where to run the job
-
         @self.service.route("/get/machines/<job_id>", methods=["GET"])
         def request_site_list(job_id):
             state = 200
@@ -1597,6 +1596,12 @@ class APIRest:
                     "served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
             if not self.platform.job_id_exists(job_id):
                 jmsg["message"] = []
                 jmsg[
@@ -1607,7 +1612,7 @@ class APIRest:
                     (job_id, job_id))
                 state = 400
             else:
-                role_res = self.check_role(args["Authorization"], "wor_mgr", prj = self.platform.get_job_info(job_id)["params"]["project"])
+                role_res = self.check_role(token["access_token"], "wor_mgr", prj = self.platform.get_job_info(job_id)["params"]["project"])
                 if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                     self.logger.doLog(
                         "served '/get/machines/<job_id>' [auth err: -- status (%d), msg (%s)]" %
@@ -1654,6 +1659,12 @@ class APIRest:
                     "served '/evaluate/machines' [auth err: -- status (%d), msg (%s)]" %
                     (auth_res["status"], auth_res["jmsg"]))
                 return (jsonify(auth_res["jmsg"]), auth_res["status"])
+            token = self.exchange_token(args["Authorization"].split()[1])
+            if token["access_token"] is None or token["refresh_token"] is None:
+                self.logger.doLog(
+                    "served '/evaluate/machines' [err: error when exchanging tokens ]"
+                )
+                return (jsonify("error when exchanging tokens"), 500)
             if not self.platform.job_id_exists(job_id):
                 jmsg["message"] = "job ID is not valid"
                 jmsg["status"] = "err"
@@ -1662,7 +1673,7 @@ class APIRest:
                     (job_id, job_id))
                 state = 400
             else:
-                role_res = self.check_role(args["Authorization"], "wor_mgr", prj = self.platform.get_job_info(job_id)["params"]["project"])
+                role_res = self.check_role(token["access_token"], "wor_mgr", prj = self.platform.get_job_info(job_id)["params"]["project"])
                 if role_res["status"] != 200 or role_res["jmsg"] != "allowed":
                     self.logger.doLog(
                         "served '/evaluate/machines/remove/<int:job_id>' [auth err: -- status (%d), msg (%s)]" %

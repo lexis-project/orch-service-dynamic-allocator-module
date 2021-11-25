@@ -199,7 +199,7 @@ class Clusters:
             sizeXfile = data["size"] / data["numberOfFiles"]
             if default:
                 speed = self.get_av_speed(sizeXfile, "", "", default=default)
-                orig = ""
+                orig = "default"
             else:
                 speed, orig = self.get_best_origin(
                     sizeXfile, centerName, data["locations"], default=default
