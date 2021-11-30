@@ -222,7 +222,7 @@ class Clusters:
         total_max_time, origins = self.data_transf(
             job_args["storage_inputs"], center.name
         )
-        if not origins:
+        if not origins and len(job_args["storage_inputs"]) != 0:
             return False
         data_tranf_score = 1 - (
             total_max_time / (total_max_time + job_args["max_walltime"])
@@ -435,13 +435,14 @@ class Clusters:
             job_args["storage_inputs"], center.name
         )
         data_tranf_score = 1
-        if not origins:
-            return False
-        elif len(job_args["storage_inputs"]) != 0:
-            time_param, _ = self.data_transf(
-                job_args["storage_inputs"], center.name, default=True
-            )
-            data_tranf_score = math.exp(-(total_max_time / (2 * time_param)))
+        if len(job_args["storage_inputs"]) != 0:
+            if not origins:
+                return False
+            else len(job_args["storage_inputs"]) != 0:
+                time_param, _ = self.data_transf(
+                    job_args["storage_inputs"], center.name, default=True
+                )
+                data_tranf_score = math.exp(-(total_max_time / (2 * time_param)))
         res["dest"]["storage_inputs"] = origins
         values = []
         values.append(memory_metric)
