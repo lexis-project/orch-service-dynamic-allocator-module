@@ -316,6 +316,7 @@ class Clusters:
         openstack_netip,
         heappe_endpoint,
         cloud_project,
+        project_network_name,
         token,
     ):
         res = {}
@@ -325,6 +326,7 @@ class Clusters:
         res["dest"]["OpenStack_URL"] = openstack_endpoint
         res["dest"]["HEAppE_URL"] = heappe_endpoint
         res["dest"]["project"] = cloud_project
+        res["dest"]["ProjectNetworkName"] = project_network_name
         if self.check_refresh_token(token) is False:
             return False
         info_dict = center.auth_and_update(
@@ -552,6 +554,7 @@ class Clusters:
                             item["CloudNetworkName"],
                             item["HEAppEEndpoint"],
                             item["AssociatedHPCProject"],
+                            item["ProjectNetworkName"],
                             token,
                         ):
                             check = True
