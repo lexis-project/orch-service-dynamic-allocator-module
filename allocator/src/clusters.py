@@ -440,7 +440,7 @@ class Clusters:
         if len(job_args["storage_inputs"]) != 0:
             if not origins:
                 return False
-            else len(job_args["storage_inputs"]) != 0:
+            else:
                 time_param, _ = self.data_transf(
                     job_args["storage_inputs"], center.name, default=True
                 )
