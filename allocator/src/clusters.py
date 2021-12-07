@@ -326,7 +326,7 @@ class Clusters:
         res["dest"]["OpenStack_URL"] = openstack_endpoint
         res["dest"]["HEAppE_URL"] = heappe_endpoint
         res["dest"]["project"] = cloud_project
-        res["dest"]["ProjectNetworkName"] = project_network_name
+        res["dest"]["PrivateNetwork"] = project_network_name
         if self.check_refresh_token(token) is False:
             return False
         info_dict = center.auth_and_update(
@@ -547,6 +547,9 @@ class Clusters:
                     ):
                         continue
                     else:
+                        projectname = ""
+                        if "ProjectNetworkName" in item:
+                            projectname = item["ProjectNetworkName"]
                         if self.Cloud_weighted_criteria_mean(
                             args,
                             self.clusters_info[center]["cloud"],
@@ -554,7 +557,7 @@ class Clusters:
                             item["CloudNetworkName"],
                             item["HEAppEEndpoint"],
                             item["AssociatedHPCProject"],
-                            item["ProjectNetworkName"],
+                            projectname,
                             token,
                         ):
                             check = True
