@@ -21,3 +21,6 @@ Finally, modify the config file ./allocator/config/lxm.conf with the relevant pa
 $ cd allocator/bin
 $ ./run.sh
 ```
+
+# ACKNOWLEDGEMENT
+This work was supported by the LEXIS project funded by the EU’s Horizon 2020 research and innovation programme (2014-2020) under grant agreement No 825532.
