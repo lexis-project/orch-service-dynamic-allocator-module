@@ -6,6 +6,7 @@ import math
 import requests
 from HeappeClient import HeappeClient
 from OpenStackClient import OpenStackClient, compare_image_names
+from threading import Lock
 
 # define a class storing information on the available sites
 # (supercomputing centers)
@@ -23,6 +24,7 @@ class Clusters:
             "../dbs/" + lxc.lxm_conf["lxm_db2"] + "_persistent_job_list"
         )
         self.default_transfer_speeds = {}
+        self.mutex = Lock()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
         self.openstack = lxc.lxm_conf["openstack_available"]
         self.backend_URL = lxc.lxm_conf["backend_URL"]
@@ -81,10 +83,12 @@ class Clusters:
     # add new job list element
     def new_job_req(self):
         uid = str(uuid.uuid4())
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             job_list[uid] = {}
             job_list[uid]["status"] = "ongoing"
             job_list[uid]["msg"] = ""
+        self.mutex.release()
         return uid
 
     # update cluster name
@@ -122,19 +126,26 @@ class Clusters:
 
     # get the dictionary of all scheduled jobs, may eat up much memory
     def dump_job_list_dict(self):
+        self.mutex.acquire()
         with shelve.open(self.job_list_file) as job_list:
             dict_job_list = dict(job_list)
+        self.mutex.release()
         return dict_job_list
 
     def job_id_exists(self, job_id):
+        self.mutex.acquire()
         with shelve.open(self.job_list_file) as job_list:
             if job_id in job_list:
+                self.mutex.release()
                 return True
+        self.mutex.release()
         return False
 
     def get_job_info(self, job_id):
+        self.mutex.acquire()
         with shelve.open(self.job_list_file) as job_list:
             temp = dict(job_list[job_id])
+        self.mutex.release()
         return temp
 
     # check token validation and eventually refresh
@@ -329,12 +340,14 @@ class Clusters:
         res["dest"]["PrivateNetwork"] = project_network_name
         if self.check_refresh_token(token) is False:
             return False
+        self.mutex.acquire()
         info_dict = center.auth_and_update(
             openstack_endpoint,
             "test_user",
             token["access_token"],
             heappe_url=heappe_endpoint,
         )
+        self.mutex.release()
         if not info_dict:
             self.logger.doLog(
                 "Openstack auth failed/unreachable for center %s" % (center.name)
@@ -386,6 +399,17 @@ class Clusters:
         if len(selected_flavours) == 0:
             self.logger.doLog("No Flavour matches requirements")
             return False
+        else:
+            self.logger.doLog("Selected Flavours:")
+            self.logger.doLog(selected_flavours)
+            self.logger.doLog("maxTotalRAMSize")
+            self.logger.doLog(info_dict["compute"]["maxTotalRAMSize"])
+            self.logger.doLog("totalRAMUsed")
+            self.logger.doLog(info_dict["compute"]["totalRAMUsed"])
+            self.logger.doLog("maxTotalCores")
+            self.logger.doLog(info_dict["compute"]["maxTotalCores"])
+            self.logger.doLog("totalCoresUsed")
+            self.logger.doLog(info_dict["compute"]["totalCoresUsed"])
         temp = sorted(selected_flavours, key=lambda x: (x["ram"], x["vcpus"]))
         selected_flavour = temp[0]["flavour"]
         memory_metric = 1  # 10TB, max_ram = -1 means unlimited
@@ -466,8 +490,10 @@ class Clusters:
         if len(job_args["storage_inputs"]) != 0:
             res["mean"] = data_tranf_score
         res["dest"]["flavour"] = selected_flavour
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             job_list[job_args["job_id"]]["val"].append(res)
+        self.mutex.release()
         return True
 
     def backend_av_resources(self, projectID, token):
@@ -489,6 +515,7 @@ class Clusters:
         ret_cloud = []
         ret_hpc = []
         if original_request_id is not "":
+            self.mutex.acquire()
             with shelve.open(self.job_list_file, writeback=True) as job_list:
                 while original_request_id is not "":
                     if "res" not in job_list[original_request_id].keys():
@@ -505,10 +532,18 @@ class Clusters:
                     original_request_id = job_list[original_request_id]["params"][
                         "original_request_id"
                     ]
+            self.mutex.release()
         return ret_hpc, ret_cloud
 
     # evaluate all the available machines based on the weighted criteria mean
     def evaluate(self, args, token):
+        self.logger.doLog(
+            "Request parameters:"
+        )
+        self.logger.doLog(
+            args
+        )
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             job_list[args["job_id"]]["params"] = args
             job_list[args["job_id"]]["val"] = []
@@ -519,6 +554,7 @@ class Clusters:
                 self.logger.doLog(
                     "Cannot authenticate in LEXIS backend or cannot refresh not active token"
                 )
+                self.mutex.release()
                 return 0
             if (
                 args["original_request_id"] != ""
@@ -529,6 +565,7 @@ class Clusters:
                     % (args["original_request_id"])
                 )
                 args["original_request_id"] = ""
+        self.mutex.release()
         banned_sites_hpc, banned_sites_cloud = self.get_banned_sites(
             args["original_request_id"]
         )
@@ -572,6 +609,7 @@ class Clusters:
                     ):
                         continue
                     else:
+                        self.mutex.acquire()
                         if self.HPC_weighted_criteria_mean(
                             args,
                             self.clusters_info[center]["hpc"],
@@ -581,7 +619,9 @@ class Clusters:
                             token,
                         ):
                             check = True
+                        self.mutex.release()
                         break
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             if check:
                 job_list[args["job_id"]]["status"] = "done"
@@ -599,17 +639,21 @@ class Clusters:
                     job_list[args["job_id"]]["msg"]
                     + " WAR: could not write the result in the DB. DB not available."
                 )
+        self.mutex.release()
         return args["job_id"]
 
     # # delete a job previously inserted in the system
     def remove_job(self, job_id):
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             del job_list[job_id]
+        self.mutex.release()
         return 0
 
     # get the best machine(s) where to run a given job (job_id)
     def get_best_machines(self, job_id):
         results = []
+        self.mutex.acquire()
         with shelve.open(self.job_list_file, writeback=True) as job_list:
             job_list[job_id]["res"] = []
             temp = sorted(
@@ -625,4 +669,5 @@ class Clusters:
                     else:
                         cluster = "cloud"
                     job_list[job_id]["res"].append((i["dest"]["location"], cluster))
+        self.mutex.release()
         return results
