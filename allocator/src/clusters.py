@@ -242,18 +242,6 @@ class Clusters:
             av_queues = center.check_template_queues(cluster, job_args["taskName"])
             if len(av_queues) == 0:
                 continue
-            if self.check_refresh_token(token) is False:
-                continue
-            resubmit = False
-            if job_args["original_request_id"] != "":
-                resubmit = True
-            queue_status = center.update_cluster(
-                cluster, "testuser", token["access_token"], resubmit
-            )
-            if not queue_status:
-                continue
-            if len(queue_status) == 0:
-                continue
             res = {}
             res["dest"] = {}
             res["dest"]["location"] = center.name
@@ -284,6 +272,18 @@ class Clusters:
                     check = False
                     break
             if not check:
+                continue
+            if self.check_refresh_token(token) is False:
+                continue
+            resubmit = False
+            if job_args["original_request_id"] != "":
+                resubmit = True
+            queue_status = center.update_cluster(
+                cluster, "testuser", token["access_token"], resubmit
+            )
+            if not queue_status:
+                continue
+            if len(queue_status) == 0:
                 continue
             res["dest"]["storage_inputs"] = origins
             for queue in av_queues:
@@ -338,6 +338,17 @@ class Clusters:
         res["dest"]["HEAppE_URL"] = heappe_endpoint
         res["dest"]["project"] = cloud_project
         res["dest"]["PrivateNetwork"] = project_network_name
+        check = True
+        now = datetime.datetime.now()
+        for maintenance in self.get_maintenance_dates(center.name, "cloud", now):
+            if now <= maintenance[1] and now >= maintenance[0]:
+                check = False
+                break
+        if not check:
+            self.logger.doLog(
+                "Openstack of center %s is in maintenance. Skipping." % (center.name)
+            )
+            return False
         if self.check_refresh_token(token) is False:
             return False
         self.mutex.acquire()
@@ -351,17 +362,6 @@ class Clusters:
         if not info_dict:
             self.logger.doLog(
                 "Openstack auth failed/unreachable for center %s" % (center.name)
-            )
-            return False
-        check = True
-        now = datetime.datetime.now()
-        for maintenance in self.get_maintenance_dates(center.name, "cloud", now):
-            if now <= maintenance[1] and now >= maintenance[0]:
-                check = False
-                break
-        if not check:
-            self.logger.doLog(
-                "Openstack of center %s is in maintenance. Skipping." % (center.name)
             )
             return False
         if (
