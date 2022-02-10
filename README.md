@@ -1,5 +1,8 @@
-# LEXIS DYNAMIC ALLOCATION MODULE (DAM)
-This is a LEXIS infrastructure module used to dynamically manage the tasks of a running workflow. Each task is dynamically allocated to the best machine in the LEXIS resource pool, considering various performance criteria (load on the machines, number of used cores, etc.). The allocation olicy is based on a greedy strategy for ranking and selecting the best machine(s) at a given point in time. The allocator is embedded in a web-based backend service developed around the Flask framework. 
+# orch-service-dynamic-allocator-module
+This submodule repository contains the LEXIS DYNAMIC ALLOCATION MODULE (DAM), a LEXIS infrastructure component used to dynamically manage the tasks of a running workflow. Each task is dynamically allocated to the best machine in the LEXIS resource pool, considering various performance criteria (load on the machines, number of used cores, etc.). The allocation olicy is based on a greedy strategy for ranking and selecting the best machine(s) at a given point in time. The allocator is embedded in a web-based backend service developed around the Flask framework. 
+
+## Acknowledgement
+This code repository is a result / contains results of the LEXIS project. The project has received funding from the European Union’s Horizon 2020 Research and Innovation programme (2014-2020) under grant agreement No. 825532.
 
 ## Application description
 This is a Flask-based web application that is intended to provide a simple APIs to compute and retrieve the best location(s) for a task. The result is stored in a dedicated database through a running InfluxDB service (on the same hosting machine).
@@ -22,5 +25,3 @@ $ cd allocator/bin
 $ ./run.sh
 ```
 
-## Acknowledgement
-This work was supported by the LEXIS project funded by the EU’s Horizon 2020 research and innovation programme (2014-2020) under grant agreement No 825532.
