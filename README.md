@@ -1,4 +1,7 @@
 # orch-service-dynamic-allocator-module
+
+<a href="https://doi.org/10.5281/zenodo.6080480"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.6080480.svg" alt="DOI"></a>
+
 This submodule repository contains the LEXIS DYNAMIC ALLOCATION MODULE (DAM), a LEXIS infrastructure component used to dynamically manage the tasks of a running workflow. Each task is dynamically allocated to the best machine in the LEXIS resource pool, considering various performance criteria (load on the machines, number of used cores, etc.). The allocation olicy is based on a greedy strategy for ranking and selecting the best machine(s) at a given point in time. The allocator is embedded in a web-based backend service developed around the Flask framework. 
 
 ## Acknowledgement
