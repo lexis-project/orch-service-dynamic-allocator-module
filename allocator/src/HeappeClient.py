@@ -280,5 +280,7 @@ class HeappeClient:
         used_nodes = self.info_dict[cluster]["QueueStatus"][queue_name][
             "NumberOfUsedNodes"
         ]
+        if used_nodes == None:
+            used_nodes = 0
         occupation = used_nodes / info["NumberOfNodes"]
         return nodes_req, occupation
