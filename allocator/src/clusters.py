@@ -26,6 +26,11 @@ class Clusters:
         self.default_transfer_speeds = {}
         self.mutex = Lock()
         self.heappe = lxc.lxm_conf["heappe_middleware_available"]
+
+        # Get service HEAppE users credentials
+        self.heappe_service_user = lxc.lxm_conf["heappe_service_user"]
+        self.heappe_service_password = lxc.lxm_conf["heappe_service_password"]
+
         self.openstack = lxc.lxm_conf["openstack_available"]
         self.backend_URL = lxc.lxm_conf["backend_URL"]
         self.transfer_sizes = lxc.lxm_conf["transfer_sizes"].split(",")
@@ -278,9 +283,10 @@ class Clusters:
             resubmit = False
             if job_args["original_request_id"] != "":
                 resubmit = True
+
+            # Get queue status
             queue_status = center.update_cluster(
-                cluster, "testuser", token["access_token"], resubmit
-            )
+                cluster, self.heappe_service_user, self.heappe_service_password, resubmit, passauth=True)
             if not queue_status:
                 continue
             if len(queue_status) == 0:

@@ -50,13 +50,11 @@ oslo.serialization==4.1.0
 oslo.utils==4.8.0
 packaging==20.9
 pbr==5.5.1
-pkg-resources==0.0.0
 prettytable==0.7.2
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
 Pygments==2.7.2
-pyinotify==0.9.6
 pyOpenSSL==20.0.1
 pyparsing==2.4.7
 pyperclip==1.8.2

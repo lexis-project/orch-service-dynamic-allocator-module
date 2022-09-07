@@ -32,6 +32,8 @@ class LXMconfig:
         self.lxm_conf["heappe_service_URLs"] = None
         self.lxm_conf["transfer_sizes"] = ""
         self.lxm_conf["transfer_speeds"] = ""
+        self.lxm_conf["heappe_service_user"] = ""
+        self.lxm_conf["heappe_service_password"] = ""
 
     #  define configuration routines
     def getConfiguration(self, conf_path):
@@ -110,6 +112,10 @@ class LXMconfig:
                     self.lxm_conf["KC_CLID"] = value
                 elif param == "KC_SECRET":
                     self.lxm_conf["KC_SECRET"] = value
+                elif param == "heappe_service_user":
+                    self.lxm_conf["heappe_service_user"] = value 
+                elif param == "heappe_service_password":
+                    self.lxm_conf["heappe_service_password"] = value
                 else:
                     print(" error - unrecognized option (%s)" % (param))
         conf.close()
